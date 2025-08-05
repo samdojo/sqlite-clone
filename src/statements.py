@@ -1,5 +1,8 @@
 from dataclasses import dataclass
 
+@dataclass
+class UpdateTableStatement:
+    pass
 
 @dataclass
 class CreateTableStatement:
