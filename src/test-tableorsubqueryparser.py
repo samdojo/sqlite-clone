@@ -53,5 +53,32 @@ class TestTableOrSubqueryParser:
             parser.parse()
         assert error.errisinstance(ParsingException)
 
+    def test_parse_table_list(self):
+        tokens = self.tokenizer.tokenize(
+            "(table1, schema_2.table2, schema_3.table3 AS table3_alias)"
+        )
+        parser = TableOrSubqueryParser(tokens)
+        result = parser.parse()
+        assert isinstance(result, list)
+        assert len(result) == 3
+        assert result[0] == Table("table1", None, None)
+        assert result[1] == Table("table2", "schema_2", None)
+        assert result[2] == Table("table3", "schema_3", "table3_alias")
+        assert len(tokens) == 1
+
+    def test_parse_table_list_with_missing_table_name(self):
+        tokens = self.tokenizer.tokenize("(table1,)")
+        parser = TableOrSubqueryParser(tokens)
+        with pytest.raises(ParsingException) as error:
+            parser.parse()
+        assert error.errisinstance(ParsingException)
+
     def test_parse_subquery(self):
         pass  # TODO
+
+    def test_parse_missing_subquery(self):
+        tokens = self.tokenizer.tokenize("()")
+        parser = TableOrSubqueryParser(tokens)
+        with pytest.raises(ParsingException) as error:
+            parser.parse()
+        assert error.errisinstance(ParsingException)
