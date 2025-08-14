@@ -53,17 +53,44 @@ class TestTableOrSubqueryParser:
             parser.parse()
         assert error.errisinstance(ParsingException)
 
+    def test_parse_table_in_parenthesis(self):
+        tokens = self.tokenizer.tokenize("(table1)")
+        parser = TableOrSubqueryParser(tokens)
+        result = parser.parse()
+        assert isinstance(result, list)
+        assert len(result) == 1
+        assert result[0] == Table("table1", None, None)
+        assert len(tokens) == 1
+
+    def test_parse_table_list_with_schema_in_parenthesis(self):
+        tokens = self.tokenizer.tokenize("(schema_name.table1)")
+        parser = TableOrSubqueryParser(tokens)
+        result = parser.parse()
+        assert isinstance(result, list)
+        assert len(result) == 1
+        assert result[0] == Table("table1", "schema_name", None)
+        assert len(tokens) == 1
+
+    def test_parse_table_list_with_schema_and_alias_in_parenthesis(self):
+        tokens = self.tokenizer.tokenize("(schema_name.table1 AS table1_alias)")
+        parser = TableOrSubqueryParser(tokens)
+        result = parser.parse()
+        assert isinstance(result, list)
+        assert len(result) == 1
+        assert result[0] == Table("table1", "schema_name", "table1_alias")
+        assert len(tokens) == 1
+
     def test_parse_table_list(self):
         tokens = self.tokenizer.tokenize(
-            "(table1, schema_2.table2, schema_3.table3 AS table3_alias)"
+            "(table1, schema2.table2, schema3.table3 AS table3_alias)"
         )
         parser = TableOrSubqueryParser(tokens)
         result = parser.parse()
         assert isinstance(result, list)
         assert len(result) == 3
         assert result[0] == Table("table1", None, None)
-        assert result[1] == Table("table2", "schema_2", None)
-        assert result[2] == Table("table3", "schema_3", "table3_alias")
+        assert result[1] == Table("table2", "schema2", None)
+        assert result[2] == Table("table3", "schema3", "table3_alias")
         assert len(tokens) == 1
 
     def test_parse_table_list_with_missing_table_name(self):

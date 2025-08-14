@@ -81,7 +81,7 @@ class TableOrSubqueryParser(BaseParser):
         else:
             raise ParsingException("Expected table name after dot")
 
-        if self.typeMatches(TokenType.EOF):
+        if self.typeMatches(TokenType.EOF) or self.typeMatches(TokenType.RPAREN):
             return Table(table_name, schema_name, None)
 
         if self.typeMatches(TokenType.KEYWORD):
