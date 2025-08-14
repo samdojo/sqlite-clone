@@ -24,15 +24,16 @@ class TableOrSubqueryParser(BaseParser):
 
     """
 
-    def parse(self) -> Union[Table, SelectStatement]:
+    def parse(self) -> Union[Table, List[Table], SelectStatement]:
         """
-        Parse tokens and return a table or a subquery.
+        Parse tokens and return a table, a list of tables or a subquery.
 
         A table is a simple table name with an optional schema name and an optional alias.
+        Multiple tables can be enclosed in parentheses.
         A subquery is a SELECT statement enclosed in parentheses.
 
         Returns:
-            Union[Table, SelectStatement]: A table or a subquery.
+            Union[Table, List[Table], SelectStatement]: A table, a list of tables or a subquery.
 
         Raises:
             ParsingException: If the input tokens do not match the expected format.
@@ -42,7 +43,7 @@ class TableOrSubqueryParser(BaseParser):
             return self._parse_table()
 
         elif self.typeMatches(TokenType.LPAREN):
-            return self._parse_subquery()
+            return self._parse_parenthesis_content()
 
     def _parse_table(self) -> Table:
         """
@@ -97,13 +98,13 @@ class TableOrSubqueryParser(BaseParser):
 
         return Table(table_name, schema_name, table_alias)
 
-    def _parse_subquery(self) -> Union[SelectStatement, List[Table]]:
+    def _parse_parenthesis_content(self) -> Union[SelectStatement, List[Table]]:
         """
-        Parse a subquery.
+        Parse the content inside parenthesis.
 
-        A subquery can be a SELECT statement or a list of tables, with optional schema names and aliases.
+        The content can be a SELECT statement or a list of tables, with optional schema names and aliases.
         Examples:
-        - SELECT * FROM table
+        - (SELECT * FROM table)
         - (table1, schema_2.table2, schema_3.table3 AS table3_alias)
 
         Returns:
