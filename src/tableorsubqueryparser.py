@@ -28,7 +28,7 @@ class TableOrSubqueryParser(BaseParser):
         """
         Parse tokens and return a table, a list of tables or a subquery.
 
-        A table is a simple table name with an optional schema name and an optional alias.
+        A table contains a table name with an optional schema name and an optional alias.
         Multiple tables can be enclosed in parentheses.
         A subquery is a SELECT statement enclosed in parentheses.
 
@@ -47,14 +47,15 @@ class TableOrSubqueryParser(BaseParser):
 
     def _parse_table(self) -> Table:
         """
-        Parse a table
+        Parse a table, its schema name and alias if exists.
+
         Examples:
-        - table
-        - schema_name.table
-        - schema_name.table AS table_alias
+        - table_name
+        - schema_name.table_name
+        - schema_name.table_name AS table_alias
 
         Returns:
-            Table: A table.
+            Table: A table object.
         """
         schema_name = None
         table_name = None
@@ -108,7 +109,7 @@ class TableOrSubqueryParser(BaseParser):
         - (table1, schema_2.table2, schema_3.table3 AS table3_alias)
 
         Returns:
-            Union[SelectStatement, List[Table]]: A subquery or a list of tables.
+            Union[SelectStatement, List[Table]]: A SELECT statement or a list of Table objects.
         """
 
         super().consume(TokenType.LPAREN)
