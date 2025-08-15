@@ -1,140 +1,151 @@
-from dataclasses import dataclass
 from parser import Parser
 from typing import List, Optional, Union
 
 from baseparser import BaseParser, ParsingException
 from sqltoken import TokenType
-from statements import SelectStatement
-
-
-@dataclass
-class Table:
-    """
-    Table container to store the table name, schema name and alias.
-    """
-
-    table_name: str
-    schema_name: Optional[str]
-    table_alias: Optional[str]
+from statements import SubQuery, Table
 
 
 class TableOrSubqueryParser(BaseParser):
     """
     Parser for table or subquery.
-
     """
 
-    def parse(self) -> Union[Table, List[Table], SelectStatement]:
+    def parse(self) -> List[Union[Table, SubQuery, List[Union[Table, SubQuery]]]]:
         """
-        Parse tokens and return a table, a list of tables or a subquery.
-
-        A table contains a table name with an optional schema name and an optional alias.
-        Multiple tables can be enclosed in parentheses.
-        A subquery is a SELECT statement enclosed in parentheses.
+        Recursively parses the input tokens and returns a list of tables and subqueries.
 
         Returns:
-            Union[Table, List[Table], SelectStatement]: A table, a list of tables or a subquery.
-
-        Raises:
-            ParsingException: If the input tokens do not match the expected format.
+            List[Union[Table, SubQuery]]: List of tables and subqueries
+        Example:
+            schema.table as alias, (SELECT * FROM table2) as alias2 returns \n
+            [Table("table", "schema", "alias"), SubQuery(SelectStatement(SELECT * FROM table2), "alias2")]
         """
-
-        if self.typeMatches(TokenType.IDENTIFIER):
-            return self._parse_table()
-
-        elif self.typeMatches(TokenType.LPAREN):
-            return self._parse_parenthesis_content()
+        result: List[Union[Table, SubQuery]] = []
+        while True:
+            if self.typeMatches(TokenType.IDENTIFIER):
+                result.append(self._parse_table())
+            elif self.typeMatches(TokenType.LPAREN):
+                super().consume(TokenType.LPAREN)
+                result.append(self._parse_parenthesis_content())
+            elif self.typeMatches(TokenType.COMMA):
+                self._handle_comma()
+            else:
+                break
+        return result
 
     def _parse_table(self) -> Table:
         """
-        Parse a table, its schema name and alias if exists.
-
-        Examples:
-        - table_name
-        - schema_name.table_name
-        - schema_name.table_name AS table_alias
+        Parses a table name and returns a Table object, with optional schema name and alias.
 
         Returns:
-            Table: A table object.
+            Table: Table object
+        Example:
+            schema.table as alias returns \n
+            Table("table", "schema", "alias")
         """
+
+        first_token = super().consume(TokenType.IDENTIFIER)
+        table_name = first_token.value
         schema_name = None
-        table_name = None
-        table_alias = None
-
-        token = super().consume(TokenType.IDENTIFIER)
-
-        if (
-            self.typeMatches(TokenType.EOF)
-            or self.typeMatches(TokenType.RPAREN)
-            or self.typeMatches(TokenType.COMMA)
-        ):
-            return Table(token.value, None, None)
-        else:
-            schema_name = token.value
 
         if self.typeMatches(TokenType.DOT):
             super().consume(TokenType.DOT)
-
-        if self.typeMatches(TokenType.IDENTIFIER):
-            token = super().consume(TokenType.IDENTIFIER)
-            table_name = token.value
-        else:
-            raise ParsingException("Expected table name after dot")
-
-        if self.typeMatches(TokenType.EOF) or self.typeMatches(TokenType.RPAREN):
-            return Table(table_name, schema_name, None)
-
-        if self.typeMatches(TokenType.KEYWORD):
-            if not self.valueMatches("AS"):
+            schema_name = first_token.value
+            if not self.typeMatches(TokenType.IDENTIFIER):
                 raise ParsingException(
-                    f"Unknown keyword {token.value} after table name"
+                    f"Unexpected token {self.tokens[0].value} after dot"
                 )
-            super().consume(TokenType.KEYWORD)
+            second_token = super().consume(TokenType.IDENTIFIER)
+            table_name = second_token.value
 
-            if self.typeMatches(TokenType.IDENTIFIER):
-                token = super().consume(TokenType.IDENTIFIER)
-                table_alias = token.value
-            else:
-                raise ParsingException("Expected table alias after keyword AS")
+        alias = self._parse_alias_if_exists(require_as=False)
+        return Table(table_name, schema_name, alias)
 
-        return Table(table_name, schema_name, table_alias)
-
-    def _parse_parenthesis_content(self) -> Union[SelectStatement, List[Table]]:
+    def _parse_parenthesis_content(self) -> List[Union[Table, SubQuery]]:
         """
-        Parse the content inside parenthesis.
-
-        The content can be a SELECT statement or a list of tables, with optional schema names and aliases.
-        Examples:
-        - (SELECT * FROM table)
-        - (table1, schema_2.table2, schema_3.table3 AS table3_alias)
+        Parses the content of a parenthesis and returns a list of tables and subqueries.
+        Recursively parses inner parenthese.
 
         Returns:
-            Union[SelectStatement, List[Table]]: A SELECT statement or a list of Table objects.
+            List[Union[Table, SubQuery]]: List of tables and subqueries
+        Example:
+            (SELECT * FROM table2) AS alias returns \n
+            [SubQuery(SelectStatement(SELECT * FROM table2), "alias")] \n
+            (table1, schema2.table2 AS alias2) returns \n
+            [Table("table1", None, None), Table("table2", "schema2", "alias2")]
         """
+        result: List[Union[Table, SubQuery]] = []
 
-        super().consume(TokenType.LPAREN)
+        # Case for select statement
+        if self.typeMatches(TokenType.KEYWORD):
+            if not self.valueMatches("SELECT"):
+                raise ParsingException(
+                    f"Unexpected keyword {self.tokens[0].value} after '('"
+                )
+            select_parser = Parser(self.tokens)
+            # TODO: This is not implemented yet
+            select_statement = select_parser.parseSelectStatementIfMatches()
+            if select_statement is not None:
+                super().consume(TokenType.RPAREN)
+                alias = self._parse_alias_if_exists(require_as=True)
+                result.append(SubQuery(select_statement, alias))
+                return result
 
-        select_parser = Parser(self.tokens)
+        # Case for list of tables and subqueries
+        while True:
+            if self.typeMatches(TokenType.RPAREN):
+                raise ParsingException(f"Parenthesis cannot be empty")
+            elif self.typeMatches(TokenType.LPAREN):
+                super().consume(TokenType.LPAREN)
+                result.append(self._parse_parenthesis_content())
+            elif self.typeMatches(TokenType.IDENTIFIER):
+                result.append(self._parse_table())
+            else:
+                raise ParsingException(
+                    f"Unexpected token {self.tokens[0].value} after '('"
+                )
 
-        # TODO: This feature is not implemented yet
-        select_statement = select_parser.parseSelectStatementIfMatches()
+            if self.typeMatches(TokenType.COMMA):  # Comma inside parenthesis
+                self._handle_comma()
 
-        if select_statement is not None:
-            super().consume(TokenType.RPAREN)
-            return select_statement
-        else:
-            # Case when table(s) inside parenthesis
-            table_list: List[Table] = []
-            table_list.append(self._parse_table())
+            if self.typeMatches(TokenType.RPAREN):  # End of parenthesis
+                break
 
-            while self.typeMatches(TokenType.COMMA):
-                super().consume(TokenType.COMMA)
-                try:
-                    table_list.append(self._parse_table())
-                except ParsingException:
-                    raise ParsingException(
-                        f"Expected table name after comma, got {self.tokens[0].value} instead"
-                    )
+        super().consume(TokenType.RPAREN)
+        if self._parse_alias_if_exists(require_as=False):
+            raise ParsingException(f"Alias not allowed for list of tables")
+        return result
 
-            super().consume(TokenType.RPAREN)
-            return table_list
+    def _parse_alias_if_exists(self, require_as: bool = False) -> Optional[str]:
+        """
+        Parses an alias if it exists.
+        """
+        # Implicit alias
+        if self.typeMatches(TokenType.IDENTIFIER):
+            if require_as:
+                raise ParsingException(f"Alias requires AS keyword")
+            return super().consume(TokenType.IDENTIFIER).value
+
+        # Explicit alias using AS
+        if self.typeMatches(TokenType.KEYWORD) and self.valueMatches("AS"):
+            super().consume(TokenType.KEYWORD)
+            if not self.typeMatches(TokenType.IDENTIFIER):
+                raise ParsingException(
+                    f"Unexpected token {self.tokens[0].value} after keyword AS"
+                )
+            return super().consume(TokenType.IDENTIFIER).value
+        return None
+
+    def _handle_comma(self):
+        """
+        Handles a comma in the input tokens.
+        """
+        super().consume(TokenType.COMMA)
+        # Token after comma must be a table name or a parenthesis
+        if not self.typeMatches(TokenType.LPAREN) and not self.typeMatches(
+            TokenType.IDENTIFIER
+        ):
+            raise ParsingException(
+                f"Unexpected token {self.tokens[0].value} after comma"
+            )
