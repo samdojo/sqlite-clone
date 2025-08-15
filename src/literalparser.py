@@ -1,17 +1,9 @@
 
-from dataclasses import dataclass
-from typing import TypeAlias
 from signednumberparser import SignedNumberParser
 from sqltoken import TokenType
 from baseparser import BaseParser, ParsingException
+from statements import Literal
 
-LiteralType: TypeAlias = int | float | bool | str | bytes | None
-
-@dataclass
-class Literal:
-    """Container for constant value."""
-    dtype: type
-    value: LiteralType
 
 class LiteralParser(BaseParser):
     """Parser for any constant values/literals."""
@@ -24,26 +16,18 @@ class LiteralParser(BaseParser):
             Literal: Container of parsed value with value in proper datatype.
         """
         if self.valueMatches("NULL") or self.valueMatches("TRUE") or self.valueMatches("FALSE"):
-            value = self.consume(TokenType.KEYWORD)
-            bn_value =  BoolNullParser([value]).parse()
+            bn_value =  BoolNullParser(self.tokens).parse()
             return Literal(type(bn_value),  bn_value)
 
         if self.valueMatches("X") or self.valueMatches("x"):
-            prefix = self.consume(TokenType.IDENTIFIER)
-            hex_str = self.consume(TokenType.STRING_LITERAL)
-            blob_value = BlobLiteralParser([prefix, hex_str]).parse()
+            blob_value = BlobLiteralParser(self.tokens).parse()
             return Literal(bytes, blob_value)
 
         if self.typeMatches(TokenType.STRING_LITERAL):
-            str_lit = self.consume(TokenType.STRING_LITERAL)
-            str_value = StringLiteralParser([str_lit]).parse()
+            str_value = StringLiteralParser(self.tokens).parse()
             return Literal(str, str_value)
 
-        num_literals = []
-        if self.typeMatches(TokenType.OPERATOR):
-            num_literals.append(self.consume(TokenType.OPERATOR))
-        num_literals.append(self.consume(TokenType.NUMBER_LITERAL))
-        num_value = SignedNumberParser(num_literals).parse()
+        num_value = SignedNumberParser(self.tokens).parse()
         return Literal(type(num_value), num_value)
 
 
@@ -56,9 +40,10 @@ class StringLiteralParser(BaseParser):
         Returns:
             str: Unwrapped literal value.
         """
-        value = super().consume(TokenType.STRING_LITERAL).value
+        value = self.consume(TokenType.STRING_LITERAL).value
         if value[0] in {"'", '"'}:
-            assert value[0] == value[-1]
+            if value[0] != value[-1]:
+                raise ParsingException(f"string literal {value} has mismatching quotes")
             value = value[1:-1]
         return value
 
@@ -79,10 +64,12 @@ class BlobLiteralParser(BaseParser):
         """
         if not (self.valueMatches("x") or self.valueMatches("X")):
             raise ParsingException(f"attempted to parse BLOB object {self.tokens[0]} without leading x or X")
-        super().consume(TokenType.IDENTIFIER)
-        hex_string = super().consume(TokenType.STRING_LITERAL).value
-        assert hex_string[0] in {"'", '"'}
-        assert hex_string[0] == hex_string[-1]
+        self.consume(TokenType.IDENTIFIER)
+        hex_string = self.consume(TokenType.STRING_LITERAL).value
+        if hex_string[0] not in {"'", '"'}:
+            raise ParsingException(f"BLOB literal {hex_string} needs matching quotes around data")
+        if hex_string[0] != hex_string[-1]:
+            raise ParsingException(f"BLOB literal {hex_string} needs matching quotes around data")
         hex_seq = hex_string[1:-1]
         return bytes.fromhex(hex_seq)
 

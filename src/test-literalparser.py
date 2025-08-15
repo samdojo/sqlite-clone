@@ -90,38 +90,45 @@ class TestLiteralParser:
             assert p_err.errisinstance(ParsingException)
 
     def test_parse_binaries(self):
-        input_1 = "test str".encode()
-        tokens_1 = self.tokenizer.tokenize(f"x'{input_1.hex()}'")
-        bin_parser_1 = BlobLiteralParser(tokens_1)
-        result_1 = bin_parser_1.parse()
-        assert result_1 == input_1
-
-        input_2 = "Hello World!".encode()
-        tokens_2 = self.tokenizer.tokenize(f"X'{input_2.hex()}'")
-        bin_parser_2 = BlobLiteralParser(tokens_2)
-        result_2 = bin_parser_2.parse()
-        assert result_2 == input_2
-
-        input_3 = "()()()".encode()
-        tokens_3 = self.tokenizer.tokenize(f'x"{input_3.hex()}"')
-        bin_parser_3 = BlobLiteralParser(tokens_3)
-        result_3 = bin_parser_3.parse()
-        assert result_3 == input_3
-
-        input_4 = "10".encode()
-        tokens_4 = self.tokenizer.tokenize(f'X"{input_4.hex()}"')
-        bin_parser_4 = BlobLiteralParser(tokens_4)
-        result_4 = bin_parser_4.parse()
-        assert result_4 == input_4
+        test_inputs_outputs = [
+            (f"x'{'test_str'.encode().hex()}'", 'test_str'.encode()),
+            (f"X'{'Hello World!'.encode().hex()}'", 'Hello World!'.encode()),
+            (f'x"{"()()()".encode().hex()}"', '()()()'.encode()),
+            (f'X"{"10".encode().hex()}"', '10'.encode()),
+        ]
+        for input, expected in test_inputs_outputs:
+            tokens = self.tokenizer.tokenize(input)
+            bin_parser = BlobLiteralParser(tokens)
+            result = bin_parser.parse()
+            assert result == expected
 
     def test_parse_incorrect_binaries(self):
         data = 'some data'.encode().hex()
-        bad_samples = [f"'{data}'", f"{data}", f"Y'{data}'"]
+        bad_samples = [f"'{data}'", f"{data}", f"Y'{data}'",]
         for sample in bad_samples:
             tokens = self.tokenizer.tokenize(sample)
             with pytest.raises(ParsingException, match=r"without leading x or X") as p_err:
                 BlobLiteralParser(tokens).parse()
             assert p_err.errisinstance(ParsingException)
+
+
+    def test_parse_binaries_incorrect_quotes(self):
+        data = 'some data'.encode().hex()
+        bad_samples = [
+                f'x"{data}',
+                f'x{data}"',
+                f'''x'{data}"''',
+                f"""x"{data}'""",
+                f'x`{data}`',
+        ]
+        for sample in bad_samples:
+            print(sample)
+            tokens = self.tokenizer.tokenize(sample)
+            print(tokens)
+            with pytest.raises(ParsingException, match=r"needs matching quotes around data") as p_err:
+                BlobLiteralParser(tokens).parse()
+            assert p_err.errisinstance(ParsingException)
+
 
     def test_parse_successful_strings(self):
         tokens_1 = self.tokenizer.tokenize('"some string"')
