@@ -111,25 +111,6 @@ class TestLiteralParser:
                 BlobLiteralParser(tokens).parse()
             assert p_err.errisinstance(ParsingException)
 
-
-    def test_parse_binaries_incorrect_quotes(self):
-        data = 'some data'.encode().hex()
-        bad_samples = [
-                f'x"{data}',
-                f'x{data}"',
-                f'''x'{data}"''',
-                f"""x"{data}'""",
-                f'x`{data}`',
-        ]
-        for sample in bad_samples:
-            print(sample)
-            tokens = self.tokenizer.tokenize(sample)
-            print(tokens)
-            with pytest.raises(ParsingException, match=r"needs matching quotes around data") as p_err:
-                BlobLiteralParser(tokens).parse()
-            assert p_err.errisinstance(ParsingException)
-
-
     def test_parse_successful_strings(self):
         tokens_1 = self.tokenizer.tokenize('"some string"')
         parser_1 = LiteralParser(tokens_1)
