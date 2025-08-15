@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import List, Optional, Self, Union
+from typing import TypeAlias
 
 
 @dataclass
@@ -27,18 +27,12 @@ class InsertStatement:
     pass
 
 
-@dataclass
-class Table:
-    """
-    Table container to store the table name, schema name and alias.
-    """
-
-    table_name: str
-    schema_name: Optional[str]
-    alias: Optional[str]
+LiteralType: TypeAlias = int | float | bool | str | bytes | None
 
 
 @dataclass
-class SubQuery:
-    content: Union[SelectStatement, Self]
-    alias: Optional[str] = None
+class Literal:
+    """Container for constant value."""
+
+    dtype: type
+    value: LiteralType
