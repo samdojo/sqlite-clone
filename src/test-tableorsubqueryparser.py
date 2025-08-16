@@ -66,6 +66,13 @@ class TestTableOrSubqueryParser:
         assert result[1] == Table("table2", None, None)
         assert len(tokens) == 1
 
+    def test_missing_comma(self):
+        tokens = self.tokenizer.tokenize("table1 alias1 table2 alias2")
+        parser = TableOrSubqueryParser(tokens)
+        with pytest.raises(ParsingException) as error:
+            parser.parse()
+        assert error.errisinstance(ParsingException)
+
     def test_parse_table_name_with_missing_alias(self):
         tokens = self.tokenizer.tokenize("schema_name.table_name AS")
         parser = TableOrSubqueryParser(tokens)

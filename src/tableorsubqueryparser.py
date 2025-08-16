@@ -30,10 +30,13 @@ class TableOrSubqueryParser(BaseParser):
             elif self.typeMatches(TokenType.LPAREN):
                 super().consume(TokenType.LPAREN)
                 result.append(self._parse_parenthesis_content())
-            elif self.typeMatches(TokenType.COMMA):
+
+            if self.typeMatches(TokenType.COMMA):
                 self._handle_comma()
-            else:
+            elif self.typeMatches(TokenType.EOF):
                 break
+            else:
+                raise ParsingException(f"Unexpected token {self.tokens[0]}")
         return result
 
     def _parse_table(self) -> Table:
@@ -74,7 +77,7 @@ class TableOrSubqueryParser(BaseParser):
         Example:
             (SELECT * FROM table2) returns \n
             [SelectStatement(SELECT * FROM table2)] \n
-            (table1, schema2.table2 AS alias2) returns \n
+            (table1, schema2.table2 AS alias2) returns \n'
             [Table("table1", None, None), Table("table2", "schema2", "alias2")]
         """
         result: NestedTableOrSubquery = []
