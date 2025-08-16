@@ -16,7 +16,8 @@ class Tokenizer:
             'UNIQUE', 'CHECK', 'DEFAULT', 'AUTO_INCREMENT', 'IDENTITY', 'CONSTRAINT',
             'INT', 'INTEGER', 'VARCHAR', 'CHAR', 'TEXT', 'DATE', 'DATETIME', 'TIMESTAMP',
             'BOOLEAN', 'BOOL', 'DECIMAL', 'NUMERIC', 'FLOAT', 'DOUBLE', 'REAL', 'COUNT',
-            'ASC', 'DESC'
+            'ASC', 'DESC', 'CURRENT_TIME', 'CURRENT_DATE', 'CURRENT_TIMESTAMP', 'TRUE',
+            'FALSE'
         }
 
         self.token_patterns = [
