@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import Optional, Self, TypeAlias, Union
+from typing import Optional, TypeAlias
 
 
 @dataclass
@@ -47,9 +47,4 @@ class Table:
     alias: Optional[str]
 
 
-@dataclass
-class SubQuery:
-    """Container for subquery."""
-
-    content: Union[SelectStatement, Self]
-    alias: Optional[str] = None
+SubQuery: TypeAlias = SelectStatement

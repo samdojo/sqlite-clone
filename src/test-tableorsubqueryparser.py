@@ -2,7 +2,8 @@ import pytest
 
 from baseparser import ParsingException
 from sqltokenizer import Tokenizer
-from tableorsubqueryparser import Table, TableOrSubqueryParser
+from statements import Table
+from tableorsubqueryparser import TableOrSubqueryParser
 
 
 class TestTableOrSubqueryParser:
@@ -142,7 +143,7 @@ class TestTableOrSubqueryParser:
 
     def test_nested_parenthesis_extended(self):
         tokens = self.tokenizer.tokenize(
-            "(table1, (table2), ((table3 AS table3_alias)))"
+            "(table1, (schema2.table2), ((schema3.table3 AS table3_alias)))"
         )
         parser = TableOrSubqueryParser(tokens)
         result = parser.parse()
@@ -151,8 +152,8 @@ class TestTableOrSubqueryParser:
         items = result[0]
         assert len(items) == 3
         assert items[0] == Table("table1", None, None)
-        assert items[1][0] == Table("table2", None, None)
-        assert items[2][0][0] == Table("table3", None, "table3_alias")
+        assert items[1][0] == Table("table2", "schema2", None)
+        assert items[2][0][0] == Table("table3", "schema3", "table3_alias")
         assert len(tokens) == 1
 
     def test_parse_table_list_with_missing_table_name(self):

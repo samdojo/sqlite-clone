@@ -1,9 +1,11 @@
 from parser import Parser
-from typing import List, Optional, Union
+from typing import List, Optional, Self, TypeAlias, Union
 
 from baseparser import BaseParser, ParsingException
 from sqltoken import TokenType
 from statements import SubQuery, Table
+
+NestedTableOrSubquery: TypeAlias = List[Union[Table, SubQuery, Self]]
 
 
 class TableOrSubqueryParser(BaseParser):
@@ -11,17 +13,17 @@ class TableOrSubqueryParser(BaseParser):
     Parser for table or subquery.
     """
 
-    def parse(self) -> List[Union[Table, SubQuery, List[Union[Table, SubQuery]]]]:
+    def parse(self) -> NestedTableOrSubquery:
         """
         Recursively parses the input tokens and returns a list of tables and subqueries.
 
         Returns:
-            List[Union[Table, SubQuery]]: List of tables and subqueries
+            List[Union[Table, SubQuery, Self]]: Nested list of tables and subqueries
         Example:
-            schema.table as alias, (SELECT * FROM table2) as alias2 returns \n
-            [Table("table", "schema", "alias"), SubQuery(SelectStatement(SELECT * FROM table2), "alias2")]
+            schema.table as alias, (SELECT * FROM table2) returns \n
+            [Table("table", "schema", "alias"), [SelectStatement(SELECT * FROM table2)]]
         """
-        result: List[Union[Table, SubQuery]] = []
+        result: NestedTableOrSubquery = []
         while True:
             if self.typeMatches(TokenType.IDENTIFIER):
                 result.append(self._parse_table())
@@ -62,20 +64,20 @@ class TableOrSubqueryParser(BaseParser):
         alias = self._parse_alias_if_exists(require_as=False)
         return Table(table_name, schema_name, alias)
 
-    def _parse_parenthesis_content(self) -> List[Union[Table, SubQuery]]:
+    def _parse_parenthesis_content(self) -> NestedTableOrSubquery:
         """
         Parses the content of a parenthesis and returns a list of tables and subqueries.
         Recursively parses inner parenthese.
 
         Returns:
-            List[Union[Table, SubQuery]]: List of tables and subqueries
+            NestedTableOrSubquery: Nested list of tables and subqueries
         Example:
-            (SELECT * FROM table2) AS alias returns \n
-            [SubQuery(SelectStatement(SELECT * FROM table2), "alias")] \n
+            (SELECT * FROM table2) returns \n
+            [SelectStatement(SELECT * FROM table2)] \n
             (table1, schema2.table2 AS alias2) returns \n
             [Table("table1", None, None), Table("table2", "schema2", "alias2")]
         """
-        result: List[Union[Table, SubQuery]] = []
+        result: NestedTableOrSubquery = []
 
         # Case for select statement
         if self.typeMatches(TokenType.KEYWORD):
@@ -88,8 +90,7 @@ class TableOrSubqueryParser(BaseParser):
             select_statement = select_parser.parseSelectStatementIfMatches()
             if select_statement is not None:
                 super().consume(TokenType.RPAREN)
-                alias = self._parse_alias_if_exists(require_as=True)
-                result.append(SubQuery(select_statement, alias))
+                result.append(select_statement)
                 return result
 
         # Case for list of tables and subqueries
@@ -98,7 +99,7 @@ class TableOrSubqueryParser(BaseParser):
                 raise ParsingException(f"Parenthesis cannot be empty")
             elif self.typeMatches(TokenType.LPAREN):
                 super().consume(TokenType.LPAREN)
-                result.append(self._parse_parenthesis_content())
+                result.append(self._parse_parenthesis_content())  # Recursive call
             elif self.typeMatches(TokenType.IDENTIFIER):
                 result.append(self._parse_table())
             else:
@@ -106,7 +107,7 @@ class TableOrSubqueryParser(BaseParser):
                     f"Unexpected token {self.tokens[0].value} after '('"
                 )
 
-            if self.typeMatches(TokenType.COMMA):  # Comma inside parenthesis
+            if self.typeMatches(TokenType.COMMA):
                 self._handle_comma()
 
             if self.typeMatches(TokenType.RPAREN):  # End of parenthesis
@@ -120,6 +121,7 @@ class TableOrSubqueryParser(BaseParser):
     def _parse_alias_if_exists(self, require_as: bool = False) -> Optional[str]:
         """
         Parses an alias if it exists.
+        If require_as is True, the alias must be preceded by AS keyword.
         """
         # Implicit alias
         if self.typeMatches(TokenType.IDENTIFIER):
@@ -137,14 +139,14 @@ class TableOrSubqueryParser(BaseParser):
             return super().consume(TokenType.IDENTIFIER).value
         return None
 
-    def _handle_comma(self):
+    def _handle_comma(self) -> None:
         """
         Handles a comma in the input tokens.
+        Token after comma must be identifier (a table name) or a parenthesis (a subquery)
         """
         super().consume(TokenType.COMMA)
-        # Token after comma must be a table name or a parenthesis
-        if not self.typeMatches(TokenType.LPAREN) and not self.typeMatches(
-            TokenType.IDENTIFIER
+        if not self.typeMatches(TokenType.IDENTIFIER) and not self.typeMatches(
+            TokenType.LPAREN
         ):
             raise ParsingException(
                 f"Unexpected token {self.tokens[0].value} after comma"
