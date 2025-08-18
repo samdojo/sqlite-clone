@@ -1,5 +1,16 @@
 from dataclasses import dataclass
-from typing import Optional, TypeAlias
+from typing import Any, List, Optional, Type, TypeAlias
+
+
+@dataclass
+class Column:
+    name: str
+    type: Type
+    nullable: bool
+    default: Optional[Any]
+    primary_key: bool
+    unique: bool
+
 
 
 @dataclass
@@ -9,7 +20,9 @@ class UpdateTableStatement:
 
 @dataclass
 class CreateTableStatement:
-    pass
+    table_name: str
+    columns: List[Column]
+
 
 
 @dataclass
