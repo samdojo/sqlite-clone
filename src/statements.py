@@ -12,6 +12,7 @@ class Column:
     unique: bool
 
 
+
 @dataclass
 class UpdateTableStatement:
     pass
@@ -21,6 +22,7 @@ class UpdateTableStatement:
 class CreateTableStatement:
     table_name: str
     columns: List[Column]
+
 
 
 @dataclass
@@ -47,3 +49,15 @@ class Literal:
 
     dtype: type
     value: LiteralType
+
+
+@dataclass
+class Table:
+    """Container for table name, schema name and alias."""
+
+    table_name: str
+    schema_name: Optional[str]
+    alias: Optional[str]
+
+
+SubQuery: TypeAlias = SelectStatement
