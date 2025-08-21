@@ -11,6 +11,7 @@ class TestColumnNameListParser:
 
     def test_parse_column_name_list(self):
         tokens = self.tokenizer.tokenize("(column1, column2, column3)")
+        print(tokens)
         parser = ColumnNameListParser(tokens)
         result = parser.parse()
         assert result == ["column1", "column2", "column3"]
@@ -22,7 +23,7 @@ class TestColumnNameListParser:
             parser.parse()
         assert (
             e.value.args[0]
-            == "Unexpected token after column name, got Token(type=<TokenType.IDENTIFIER: 'IDENTIFIER'>, value='column2')"
+            == "Unexpected token after column name, got Token(type=<TokenType.IDENTIFIER: 'IDENTIFIER'>, value='column2'). Expected comma or parenthesis."
         )
 
     def test_missing_column_name(self):
@@ -42,7 +43,7 @@ class TestColumnNameListParser:
             parser.parse()
         assert (
             e.value.args[0]
-            == "Unexpected token after column name, got Token(type=<TokenType.EOF: 'EOF'>, value='')"
+            == "Unexpected token after column name, got Token(type=<TokenType.EOF: 'EOF'>, value=''). Expected comma or parenthesis."
         )
 
     def test_inner_parentheses(self):
