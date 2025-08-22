@@ -24,7 +24,9 @@ class TableOrSubqueryParser(BaseParser):
             [Table("table", "schema", "alias"), [SelectStatement(SELECT * FROM table2)]]
         """
         result: NestedTableOrSubquery = []
-        if self.typeMatches(TokenType.RPAREN) or self.typeMatches(TokenType.COMMA):
+        if not self.typeMatches(TokenType.IDENTIFIER) and not self.typeMatches(
+            TokenType.LPAREN
+        ):
             raise ParsingException(
                 f"Unexpected token {self.tokens[0]} at the beginning of the list"
             )
