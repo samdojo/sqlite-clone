@@ -15,7 +15,7 @@ class Column:
 
 @dataclass
 class UpdateTableStatement:
-    table: "Table"
+    pass
 
 
 @dataclass
