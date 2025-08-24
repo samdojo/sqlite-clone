@@ -12,7 +12,7 @@ class QualifiedTableNameParser(BaseParser):
 
     def parse(self) -> Table:
         """
-        Parses: [schema.]table [AS alias]|[alias]
+        Parses: [schema.]table [AS alias]
         Returns:
             Table(table_name, schema_name, alias)
         """
