@@ -1,4 +1,4 @@
-from base_parser import BaseParser
+from baseparser import BaseParser
 from statements import DropTableStatement
 from sqltoken import TokenType
 from baseparser import ParsingException
