@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from enum import Enum
 from typing import Any, List, Optional, Type, TypeAlias
 
 
@@ -61,3 +62,39 @@ class Table:
 
 
 SubQuery: TypeAlias = SelectStatement
+
+
+class UnaryOperator(str, Enum):
+    BITWISE_NOT = "~"
+    POSITIVE = "+"
+    NEGATIVE = "-"
+    NOT = "NOT"
+
+    @staticmethod
+    def isUnary(value: str) -> bool:
+        return value in {k.value for k in UnaryOperator}
+
+
+class BinaryOperator(str, Enum):
+    STRING_CONCAT = "||"
+    MULT = "*"
+    DIVIDE = "/"
+    MOD = "%"
+    PLUS = "+"
+    MINUS = "-"
+    AMPERSAND = "&"
+    BAR = "|"
+    LESS = "<"
+    GREATER = ">"
+    LESS_EQ = "<="
+    GREATER_EQ = ">="
+    EQLS = "="
+    DBL_EQLS = "=="
+    DIAMOND = "<>"
+    NOT_EQLS = "!="
+    AND = "AND"
+    OR = "OR"
+
+    @staticmethod
+    def isBinary(value: str) -> bool:
+        return value in {k.value for k in BinaryOperator}
