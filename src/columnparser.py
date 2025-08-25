@@ -1,4 +1,3 @@
-# columnparser.py
 from typing import List, Optional
 from statements import Column
 from baseparser import BaseParser, ParsingException
@@ -14,13 +13,13 @@ class ColumnParser(BaseParser):
             raise ParsingException("No tokens to parse")
 
         # first token = column name
-        name_token = self.tokens.pop(0)
+        name_token = self.consume(TokenType.IDENTIFIER)
         name = name_token.value
 
-        # second token (optional) = type
+        # optional type
         col_type = None
-        if self.tokens and self.tokens[0].type == TokenType.IDENTIFIER:
-            col_type = self.tokens.pop(0).value
+        if self.tokens and (self.typeMatches(TokenType.IDENTIFIER) or self.typeMatches(TokenType.KEYWORD)):
+            col_type = self.consume(self.tokens[0].type).value
 
         # defaults
         default_value: Optional[str] = None
@@ -31,22 +30,30 @@ class ColumnParser(BaseParser):
 
         # process remaining tokens
         while self.tokens:
-            token = self.tokens.pop(0)
+            token = self.tokens[0]
             tok_val = token.value.upper()
 
-            if tok_val == "DEFAULT" and self.tokens:
-                default_value = self.tokens.pop(0).value
-            elif tok_val == "NOT" and self.tokens and self.tokens[0].value.upper() == "NULL":
-                self.tokens.pop(0)
-                nullable = False
-            elif tok_val == "PRIMARY" and self.tokens and self.tokens[0].value.upper() == "KEY":
-                self.tokens.pop(0)
-                primary_key = True
-                nullable = False  # PRIMARY KEY implies NOT NULL
+            if tok_val == "DEFAULT":
+                self.consume(TokenType.KEYWORD, "DEFAULT")
+                if self.tokens:
+                    default_value = self.consume(self.tokens[0].type).value
+            elif tok_val == "NOT":
+                self.consume(TokenType.KEYWORD, "NOT")
+                if self.tokens and self.valueMatches("NULL"):
+                    self.consume(TokenType.KEYWORD, "NULL")
+                    nullable = False
+            elif tok_val == "PRIMARY":
+                self.consume(TokenType.KEYWORD, "PRIMARY")
+                if self.tokens and self.valueMatches("KEY"):
+                    self.consume(TokenType.KEYWORD, "KEY")
+                    primary_key = True
+                    nullable = False  # PRIMARY KEY implies NOT NULL
             elif tok_val == "UNIQUE":
+                self.consume(TokenType.KEYWORD, "UNIQUE")
                 unique = True
             else:
                 constraints.append(tok_val)
+                self.consume(token.type)  # consume unknown token
 
         return Column(
             name=name,
