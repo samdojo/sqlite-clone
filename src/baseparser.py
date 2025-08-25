@@ -1,4 +1,4 @@
-from typing import List, Optional
+from typing import Callable, List, Optional
 from sqltoken import Token, TokenType
 
 class ParsingException(Exception):
@@ -17,6 +17,11 @@ class BaseParser:
         if not self.tokens:
             raise ParsingException('no token to match with')
         return self.tokens[0].value == value
+
+    def valueIsPredicate(self, predicate: Callable[[str], bool]) -> bool:
+        if not self.tokens:
+            raise ParsingException('no token to match with')
+        return predicate(self.tokens[0].value)
 
     def consume(self, type: TokenType, value: Optional[str] = None) -> Token:
         if not self.tokens:

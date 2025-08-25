@@ -1,4 +1,5 @@
-
+from dataclasses import dataclass
+from typing import Optional
 from signednumberparser import SignedNumberParser
 from sqltoken import TokenType
 from baseparser import BaseParser, ParsingException
@@ -30,6 +31,11 @@ class LiteralParser(BaseParser):
         num_value = SignedNumberParser(self.tokens).parse()
         return Literal(type(num_value), num_value)
 
+    def parseIfMatches(self) -> Optional[Literal]:
+        try:
+            return self.parse()
+        except ParsingException:
+            return None
 
 
 class StringLiteralParser(BaseParser):
@@ -92,4 +98,46 @@ class BoolNullParser(BaseParser):
                 return False
             case "NULL":
                 return None
+
+
+@dataclass
+class ColumnAddress:
+    """Dataclass for column address including optional table and schema."""
+    schema_name: Optional[str]
+    table_name: Optional[str]
+    column_name: str
+
+    def __init__(self, column_name: str, table_name: Optional[str] = None, schema_name: Optional[str] = None) -> None:
+        if (schema_name is not None) and (table_name is None):
+            # TODO: Create a distinct error type for this
+            raise ValueError("table_name should always be non-null if schema_name is non-null")
+        self.column_name = column_name
+        self.table_name = table_name
+        self.schema_name = schema_name
+
+
+class ColumnAddressParser(BaseParser):
+    """Parser for (qualified) column names."""
+    def parse(self) -> ColumnAddress:
+        identifiers = []
+        identifiers.append(self.consume(TokenType.IDENTIFIER).value)
+        if not self.typeMatches(TokenType.DOT):
+            return ColumnAddress(column_name=identifiers[0])
+        self.consume(TokenType.DOT)
+        identifiers.append(self.consume(TokenType.IDENTIFIER).value)
+        if not self.typeMatches(TokenType.DOT):
+            return ColumnAddress(column_name=identifiers[1], table_name=identifiers[0])
+        self.consume(TokenType.DOT)
+        identifiers.append(self.consume(TokenType.IDENTIFIER).value)
+        return ColumnAddress(
+            column_name=identifiers[2],
+            table_name=identifiers[1],
+            schema_name=identifiers[0]
+        )
+
+    def parseIfMatches(self) -> Optional[ColumnAddress]:
+        try:
+            return self.parse()
+        except ParsingException:
+            return None
 
