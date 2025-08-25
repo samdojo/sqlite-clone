@@ -27,7 +27,9 @@ class CreateTableStatement:
 
 @dataclass
 class DropTableStatement:
-    pass
+    table_name: str
+    schema_name: Optional[str] = None
+    if_exists: bool = False
 
 
 @dataclass

@@ -17,22 +17,3 @@ class Catalog:
         return False
     def drop_storage(self, full_name):
         print(f"Storage for {full_name} removed.")
-class DropTableExecutor:
-    def _init_(self, catalog):
-        self.catalog = catalog
-    def execute(self, drop_data: DropTableData):
-        full_name = f"{drop_data.schema_name}.{drop_data.table_name}" if drop_data.schema_name else drop_data.table_name
-        if full_name not in self.catalog.tables:
-            if drop_data.if_exists:
-                print(f"Notice: table {full_name} does not exist, skipping.")
-                return
-            else:
-                raise Exception(f"Error: table {full_name} does not exist.")
-        if self.catalog.has_dependencies(full_name):
-            raise Exception(f"Error: cannot drop {full_name}, other objects depend on it.")
-        del self.catalog.tables[full_name]
-        self.catalog.drop_storage(full_name)
-        print(f"Table {full_name} dropped successfully.")
-catalog = Catalog()
-executor = DropTableExecutor(catalog)
-executor.execute(drop_users_data)
