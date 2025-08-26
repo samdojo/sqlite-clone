@@ -1,17 +1,16 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Any, List, Optional, Type, TypeAlias
 
 
 @dataclass
 class Column:
     name: str
-    type: Type
-    nullable: bool
-    default: Optional[Any]
-    primary_key: bool
-    unique: bool
-
-
+    type: Type | None = None
+    nullable: bool = True
+    default: Optional[Any] = None
+    primary_key: bool = False
+    unique: bool = False
+    constraints: list[str] = field(default_factory=list) 
 
 @dataclass
 class UpdateTableStatement:
