@@ -73,6 +73,20 @@ class TestTableOrSubqueryParser:
             parser.parse()
         assert error.errisinstance(ParsingException)
 
+    def test_starting_with_comma(self):
+        tokens = self.tokenizer.tokenize(", table1")
+        parser = TableOrSubqueryParser(tokens)
+        with pytest.raises(ParsingException) as error:
+            parser.parse()
+        assert error.errisinstance(ParsingException)
+
+    def test_starting_with_rparen(self):
+        tokens = self.tokenizer.tokenize(") table1")
+        parser = TableOrSubqueryParser(tokens)
+        with pytest.raises(ParsingException) as error:
+            parser.parse()
+        assert error.errisinstance(ParsingException)
+
     def test_parse_table_name_with_missing_alias(self):
         tokens = self.tokenizer.tokenize("schema_name.table_name AS")
         parser = TableOrSubqueryParser(tokens)
