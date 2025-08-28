@@ -23,6 +23,15 @@ class TestCreateTableParser:
                 default=None,
                 primary_key=False,
                 unique=False,
-                constraints=[",", "NAME", "VARCHAR", "(", "255", ")", ")", ""],
-            )
+                constraints=[],
+            ),
+            Column(
+                name="name",
+                type="VARCHAR",
+                nullable=True,
+                default=None,
+                primary_key=False,
+                unique=False,
+                constraints=[],
+            ),
         ]
