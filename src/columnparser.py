@@ -33,6 +33,10 @@ class ColumnParser(BaseParser):
             token = self.tokens[0]
             tok_val = token.value.upper()
 
+            # stop at column separator
+            if token.value in {",", ")"}:
+                break
+                
             if tok_val == "DEFAULT":
                 self.consume(TokenType.KEYWORD, "DEFAULT")
                 if self.tokens:
