@@ -1,6 +1,6 @@
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Any, List, Optional, Type, TypeAlias
+from typing import Any, List, Optional, Type, TypeAlias, Union
 
 
 @dataclass
@@ -71,10 +71,6 @@ class UnaryOperator(str, Enum):
     NEGATIVE = "-"
     NOT = "NOT"
 
-    @staticmethod
-    def isUnary(value: str) -> bool:
-        return value in {k.value for k in UnaryOperator}
-
 
 class BinaryOperator(str, Enum):
     STRING_CONCAT = "||"
@@ -96,6 +92,26 @@ class BinaryOperator(str, Enum):
     AND = "AND"
     OR = "OR"
 
-    @staticmethod
-    def isBinary(value: str) -> bool:
-        return value in {k.value for k in BinaryOperator}
+
+@dataclass
+class ColumnAddress:
+    """Dataclass for column address including optional table and schema."""
+    column_name: str
+    table_name: Optional[str] = None
+    schema_name: Optional[str] = None
+
+
+@dataclass
+class Expression:
+    """Dataclass for SQLite expressions.
+
+    Route indicates what kind of expression is contained.
+    """
+
+    route: int = -1
+    expr_array: Optional[list["Expression"]] = None
+    unary_op: Optional[UnaryOperator] = None
+    lead_expr: Optional[Union["Expression", Literal, ColumnAddress]] = None
+    binary_op: Optional[BinaryOperator] = None
+    second_expr: Optional[Union["Expression", Literal, ColumnAddress]] = None
+

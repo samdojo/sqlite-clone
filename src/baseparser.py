@@ -18,10 +18,10 @@ class BaseParser:
             raise ParsingException('no token to match with')
         return self.tokens[0].value == value
 
-    def valueIsPredicate(self, predicate: Callable[[str], bool]) -> bool:
+    def isValueOneOf(self, values: list[str]) -> bool:
         if not self.tokens:
             raise ParsingException('no token to match with')
-        return predicate(self.tokens[0].value)
+        return self.tokens[0].value in values
 
     def consume(self, type: TokenType, value: Optional[str] = None) -> Token:
         if not self.tokens:

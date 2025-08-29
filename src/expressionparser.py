@@ -1,25 +1,38 @@
-from dataclasses import dataclass
-from typing import Optional, Union
-from literalparser import ColumnAddress, ColumnAddressParser, LiteralParser
+from typing import Optional
+from literalparser import LiteralParser
 from sqltoken import TokenType
 from baseparser import BaseParser, ParsingException
-from statements import BinaryOperator, UnaryOperator, Literal
+from statements import BinaryOperator, ColumnAddress, UnaryOperator, Expression
 import copy
 
+UNARIES = [k.value for k in UnaryOperator]
+BINARIES = [k.value for k in BinaryOperator]
 
-@dataclass
-class Expression:
-    """Dataclass for SQLite expressions.
 
-    Route indicates what kind of expression is contained.
-    """
+class ColumnAddressParser(BaseParser):
+    """Parser for (qualified) column names."""
+    def parse(self) -> ColumnAddress:
+        identifiers = []
+        identifiers.append(self.consume(TokenType.IDENTIFIER).value)
+        if not self.typeMatches(TokenType.DOT):
+            return ColumnAddress(column_name=identifiers[0])
+        self.consume(TokenType.DOT)
+        identifiers.append(self.consume(TokenType.IDENTIFIER).value)
+        if not self.typeMatches(TokenType.DOT):
+            return ColumnAddress(column_name=identifiers[1], table_name=identifiers[0])
+        self.consume(TokenType.DOT)
+        identifiers.append(self.consume(TokenType.IDENTIFIER).value)
+        return ColumnAddress(
+            column_name=identifiers[2],
+            table_name=identifiers[1],
+            schema_name=identifiers[0]
+        )
 
-    route: int = -1
-    expr_array: Optional[list["Expression"]] = None
-    unary_op: Optional[UnaryOperator] = None
-    lead_expr: Optional[Union["Expression", Literal, ColumnAddress]] = None
-    binary_op: Optional[BinaryOperator] = None
-    second_expr: Optional[Union["Expression", Literal, ColumnAddress]] = None
+    def parseIfMatches(self) -> Optional[ColumnAddress]:
+        try:
+            return self.parse()
+        except ParsingException:
+            return None
 
 
 class ExpressionParser(BaseParser):
@@ -29,9 +42,9 @@ class ExpressionParser(BaseParser):
     of expression specification."""
     def parse(self) -> Expression:
         output = Expression()
-        if self.valueIsPredicate(UnaryOperator.isUnary):
+        if self.isValueOneOf(UNARIES):
             output.route = 5
-            if self.valueIsPredicate(lambda x: x == "NOT"):
+            if self.valueMatches("NOT"):
                 unary = self.consume(TokenType.KEYWORD).value
             else:
                 unary = self.consume(TokenType.OPERATOR).value
@@ -56,12 +69,12 @@ class ExpressionParser(BaseParser):
             output.lead_expr = Expression(lead_expr=column_address, route=3)
         else:
             raise ParsingException("Unable to find parsing route for Expression")
-        if self.valueIsPredicate(BinaryOperator.isBinary):
+        if self.isValueOneOf(BINARIES):
             if self.typeMatches(TokenType.OPERATOR):
                 binary_str = self.consume(TokenType.OPERATOR).value
             elif self.typeMatches(TokenType.COMPARISON):
                 binary_str = self.consume(TokenType.COMPARISON).value
-            elif self.valueIsPredicate(lambda x: x in {"AND", "OR"}):
+            elif self.isValueOneOf(["AND", "OR"]):
                 binary_str = self.consume(TokenType.KEYWORD).value
             else:
                 raise ParsingException(
