@@ -33,10 +33,10 @@ class Tokenizer:
             (r'\b\d+\.?\d*\b', TokenType.NUMBER_LITERAL),
 
             # Comparison operators (must come before single character operators)
-            (r'<=|>=|<>|!=|<|>|=', TokenType.COMPARISON),
+            (r'==|<=|>=|<>|!=|<|>|=', TokenType.COMPARISON),
 
             # Other operators
-            (r'\+|-|\*|/|%', TokenType.OPERATOR),
+            (r'\+|-|\*|/|%|~|\|\||&', TokenType.OPERATOR),
 
             # Punctuation
             (r',', TokenType.COMMA),
