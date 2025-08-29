@@ -49,6 +49,15 @@ class CreateTableParser(BaseParser):
         while True:
             if self.tokens:
                 result.append(column_parser.parse())
+                if self.tokens and self.tokens[0].type == TokenType.COMMA:
+                    super().consume(TokenType.COMMA)
+                elif self.tokens and self.tokens[0].type == TokenType.RPAREN:
+                    super().consume(TokenType.RPAREN)
+                    break
+                else:
+                    raise ParsingException(
+                        f"Unexpected token {self.tokens[0]} at the beginning of the list"
+                    )
             else:
                 break
         return result
