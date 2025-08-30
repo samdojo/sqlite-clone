@@ -223,7 +223,8 @@ class UpdateParser(BaseParser):
                 raise ParsingException("Expected '(' before CTE subquery")
             super().consume(TokenType.LPAREN)
 
-            # For simplicity: collect tokens until matching ')'
+            # For simplicity: collect tokens until matching
+            
             expr = self._parse_expression()
 
             if not self.valueMatches(")"):
