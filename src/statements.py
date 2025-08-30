@@ -1,17 +1,17 @@
-from dataclasses import dataclass
-from typing import Any, List, Optional, Type, TypeAlias
+from dataclasses import dataclass, field
+from enum import Enum
+from typing import Any, List, Optional, Type, TypeAlias, Union
 
 
 @dataclass
 class Column:
     name: str
-    type: Type
-    nullable: bool
-    default: Optional[Any]
-    primary_key: bool
-    unique: bool
-
-
+    type: Type | None = None
+    nullable: bool = True
+    default: Optional[Any] = None
+    primary_key: bool = False
+    unique: bool = False
+    constraints: list[str] = field(default_factory=list) 
 
 @dataclass
 class UpdateTableStatement:
@@ -63,3 +63,55 @@ class Table:
 
 
 SubQuery: TypeAlias = SelectStatement
+
+
+class UnaryOperator(str, Enum):
+    BITWISE_NOT = "~"
+    POSITIVE = "+"
+    NEGATIVE = "-"
+    NOT = "NOT"
+
+
+class BinaryOperator(str, Enum):
+    STRING_CONCAT = "||"
+    MULT = "*"
+    DIVIDE = "/"
+    MOD = "%"
+    PLUS = "+"
+    MINUS = "-"
+    AMPERSAND = "&"
+    BAR = "|"
+    LESS = "<"
+    GREATER = ">"
+    LESS_EQ = "<="
+    GREATER_EQ = ">="
+    EQLS = "="
+    DBL_EQLS = "=="
+    DIAMOND = "<>"
+    NOT_EQLS = "!="
+    AND = "AND"
+    OR = "OR"
+
+
+@dataclass
+class ColumnAddress:
+    """Dataclass for column address including optional table and schema."""
+    column_name: str
+    table_name: Optional[str] = None
+    schema_name: Optional[str] = None
+
+
+@dataclass
+class Expression:
+    """Dataclass for SQLite expressions.
+
+    Route indicates what kind of expression is contained.
+    """
+
+    route: int = -1
+    expr_array: Optional[list["Expression"]] = None
+    unary_op: Optional[UnaryOperator] = None
+    lead_expr: Optional[Union["Expression", Literal, ColumnAddress]] = None
+    binary_op: Optional[BinaryOperator] = None
+    second_expr: Optional[Union["Expression", Literal, ColumnAddress]] = None
+
