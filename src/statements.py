@@ -1,6 +1,7 @@
 from dataclasses import dataclass, field
 from enum import Enum
 from typing import Any, List, Optional, Type, TypeAlias, Union
+import typing
 
 
 @dataclass
@@ -11,7 +12,8 @@ class Column:
     default: Optional[Any] = None
     primary_key: bool = False
     unique: bool = False
-    constraints: list[str] = field(default_factory=list) 
+    constraints: list[str] = field(default_factory=list)
+
 
 @dataclass
 class UpdateTableStatement:
@@ -22,7 +24,6 @@ class UpdateTableStatement:
 class CreateTableStatement:
     table_name: str
     columns: List[Column]
-
 
 
 @dataclass
@@ -96,9 +97,31 @@ class BinaryOperator(str, Enum):
 @dataclass
 class ColumnAddress:
     """Dataclass for column address including optional table and schema."""
+
     column_name: str
     table_name: Optional[str] = None
     schema_name: Optional[str] = None
+
+
+BinaryLiterals = typing.Literal[
+    "ISNULL",
+    "NOTNULL",
+    "NOT NULL",
+    "IS",
+    "IS NOT",
+    "IS DISTINCT FROM",
+    "IS NOT DISTINCT FROM",
+    "BETWEEN",
+    "NOT BETWEEN",
+    "LIKE",
+    "NOT LIKE",
+    "GLOB",
+    "NOT GLOB",
+    "REGEXP",
+    "NOT REGEXP",
+    "MATCH",
+    "NOT MATCH",
+]
 
 
 @dataclass
@@ -110,8 +133,9 @@ class Expression:
 
     route: int = -1
     expr_array: Optional[list["Expression"]] = None
-    unary_op: Optional[UnaryOperator] = None
+    unary_op: Union[UnaryOperator, BinaryLiterals, None] = None
     lead_expr: Optional[Union["Expression", Literal, ColumnAddress]] = None
-    binary_op: Optional[BinaryOperator] = None
+    binary_op: Optional[Union[BinaryOperator, BinaryLiterals]] = None
     second_expr: Optional[Union["Expression", Literal, ColumnAddress]] = None
-
+    ternary_op: Optional[typing.Literal["AND", "ESCAPE"]] = None
+    third_expr: Optional[Union["Expression", Literal, ColumnAddress]] = None
