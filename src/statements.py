@@ -10,7 +10,8 @@ class Column:
     default: Optional[Any] = None
     primary_key: bool = False
     unique: bool = False
-    constraints: list[str] = field(default_factory=list) 
+    constraints: list[str] = field(default_factory=list)
+
 
 @dataclass
 class UpdateTableStatement:
@@ -20,8 +21,8 @@ class UpdateTableStatement:
 @dataclass
 class CreateTableStatement:
     table_name: str
+    schema_name: Optional[str]
     columns: List[Column]
-
 
 
 @dataclass
