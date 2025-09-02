@@ -133,7 +133,7 @@ class Expression:
 
     route: int = -1
     expr_array: Optional[list["Expression"]] = None
-    unary_op: Union[UnaryOperator, BinaryLiterals, None] = None
+    unary_op: Optional[Union[UnaryOperator, BinaryLiterals]] = None
     lead_expr: Optional[Union["Expression", Literal, ColumnAddress]] = None
     binary_op: Optional[Union[BinaryOperator, BinaryLiterals]] = None
     second_expr: Optional[Union["Expression", Literal, ColumnAddress]] = None
