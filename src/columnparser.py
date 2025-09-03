@@ -21,6 +21,15 @@ class ColumnParser(BaseParser):
         if self.tokens and (self.typeMatches(TokenType.IDENTIFIER) or self.typeMatches(TokenType.KEYWORD)):
             col_type = self.consume(self.tokens[0].type).value
 
+            # handle type args in parentheses (e.g. VARCHAR(255), DECIMAL(10,2))
+            if self.tokens and self.valueMatches("("):
+                args = [self.consume(TokenType.SYMBOL, "(").value]
+                while self.tokens and not self.valueMatches(")"):
+                    args.append(self.consume(self.tokens[0].type).value)
+                if self.tokens and self.valueMatches(")"):
+                    args.append(self.consume(TokenType.SYMBOL, ")").value)
+                col_type += "".join(args)
+
         # defaults
         default_value: Optional[str] = None
         nullable = True
