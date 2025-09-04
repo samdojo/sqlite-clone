@@ -23,7 +23,7 @@ class UpdateTableStatement:
 @dataclass
 class CreateTableStatement:
     table_name: str
-    schema_name: Optional[str] # TODO: add support to parser
+    schema_name: Optional[str]
     columns: List[Column]
 
 
