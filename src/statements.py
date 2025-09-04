@@ -23,6 +23,7 @@ class UpdateTableStatement:
 @dataclass
 class CreateTableStatement:
     table_name: str
+    schema_name: Optional[str] # TODO: add support to parser
     columns: List[Column]
 
 
@@ -72,7 +73,7 @@ class Literal:
 
 
 @dataclass
-class Table:
+class QualifiedTableName:
     """Container for table name, schema name and alias."""
 
     table_name: str

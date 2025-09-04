@@ -1,7 +1,7 @@
 from typing import Optional
 from baseparser import BaseParser, ParsingException
 from sqltoken import TokenType
-from statements import Table
+from statements import QualifiedTableName
 
 
 class QualifiedTableNameParser(BaseParser):
@@ -10,11 +10,11 @@ class QualifiedTableNameParser(BaseParser):
 
     """
 
-    def parse(self) -> Table:
+    def parse(self) -> QualifiedTableName:
         """
         Parses: [schema.]table [AS alias]
         Returns:
-            Table(table_name, schema_name, alias)
+            QualifiedTableName(table_name, schema_name, alias)
         """
         if not self.typeMatches(TokenType.IDENTIFIER):
             raise ParsingException("Expected table name (or schema) after UPDATE")
@@ -34,7 +34,7 @@ class QualifiedTableNameParser(BaseParser):
 
         # ALIAS
         alias = self._parse_alias_if_exists(require_as=False)
-        return Table(table_name, schema_name, alias)
+        return QualifiedTableName(table_name, schema_name, alias)
 
     def _parse_alias_if_exists(self, require_as: bool = False) -> Optional[str]:
         """
