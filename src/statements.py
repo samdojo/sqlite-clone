@@ -43,6 +43,23 @@ class InsertStatement:
     pass
 
 
+class TypeAffinities(str, Enum):
+    INTEGER = "INTEGER"
+    TEXT = "TEXT"
+    BLOB = "BLOB"
+    REAL = "REAL"
+    NUMERIC = "NUMERIC"
+
+
+@dataclass
+class TypeName:
+    name: str
+    numeric_args: (
+        tuple[None, None] | tuple[str | float, None] | tuple[str | float, str | float]
+    )
+    type_affinity: TypeAffinities
+
+
 LiteralType: TypeAlias = int | float | bool | str | bytes | None
 
 
