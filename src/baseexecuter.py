@@ -1,0 +1,3 @@
+
+class ExecutingException(Exception):
+    pass

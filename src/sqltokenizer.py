@@ -17,7 +17,7 @@ class Tokenizer:
             'INT', 'INTEGER', 'VARCHAR', 'CHAR', 'TEXT', 'DATE', 'DATETIME', 'TIMESTAMP',
             'BOOLEAN', 'BOOL', 'DECIMAL', 'NUMERIC', 'FLOAT', 'DOUBLE', 'REAL', 'COUNT',
             'ASC', 'DESC', 'CURRENT_TIME', 'CURRENT_DATE', 'CURRENT_TIMESTAMP', 'TRUE',
-            'FALSE'
+            'FALSE', "ISNULL", "NOTNULL", "ESCAPE", "GLOB", "REGEXP", "MATCH"
         }
 
         self.token_patterns = [
@@ -33,10 +33,10 @@ class Tokenizer:
             (r'\b\d+\.?\d*\b', TokenType.NUMBER_LITERAL),
 
             # Comparison operators (must come before single character operators)
-            (r'<=|>=|<>|!=|<|>|=', TokenType.COMPARISON),
+            (r'==|<=|>=|<>|!=|<|>|=', TokenType.COMPARISON),
 
             # Other operators
-            (r'\+|-|\*|/|%', TokenType.OPERATOR),
+            (r'\+|-|\*|/|%|~|\|\||&', TokenType.OPERATOR),
 
             # Punctuation
             (r',', TokenType.COMMA),

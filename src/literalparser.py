@@ -1,8 +1,8 @@
-
+from typing import Optional
 from signednumberparser import SignedNumberParser
 from sqltoken import TokenType
 from baseparser import BaseParser, ParsingException
-from statements import Literal
+from statements import Literal, ColumnAddress
 
 
 class LiteralParser(BaseParser):
@@ -30,6 +30,11 @@ class LiteralParser(BaseParser):
         num_value = SignedNumberParser(self.tokens).parse()
         return Literal(type(num_value), num_value)
 
+    def parseIfMatches(self) -> Optional[Literal]:
+        try:
+            return self.parse()
+        except ParsingException:
+            return None
 
 
 class StringLiteralParser(BaseParser):
