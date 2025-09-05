@@ -36,7 +36,9 @@ class DropTableStatement:
 
 @dataclass
 class SelectStatement:
-    pass
+    columns: List[str]
+    table: str
+    where: Optional[str] = None
 
 
 @dataclass
