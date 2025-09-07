@@ -23,7 +23,7 @@ class UpdateTableStatement:
 @dataclass
 class CreateTableStatement:
     table_name: str
-    schema_name: Optional[str] # TODO: add support to parser
+    schema_name: Optional[str]  # TODO: add support to parser
     columns: List[Column]
 
 
@@ -39,8 +39,17 @@ class SelectStatement:
     pass
 
 
+LiteralType: TypeAlias = int | float | bool | str | bytes | None
+
+
 @dataclass
 class InsertStatement:
+    table_name: str
+    column_name: Column
+    value: LiteralType
+    schema_name: Optional[str] = None
+    if_exists: bool = False
+    alias: Optional[str] = None
     pass
 
 
