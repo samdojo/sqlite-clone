@@ -5,17 +5,28 @@ from sqltoken import Token, TokenType
 from baseparser import ParsingException
 from insertparser import InsertStatementParser
 from statements import Expression, Literal
+from statements import InsertStatement
+
 
 def make_tokens(pairs):
     """Build tokens without running the tokenizer (useful for 'extra tokens' test)."""
     return [Token(value=v, type=t) for v, t in pairs]
 
-def test_insert_with_schema_alias_and_columns():
 
+def test_insert_with_schema_alias_and_columns():
     sql = "INSERT INTO main.users AS u (id, name) VALUES (1, 'alice')"
     tokens = Tokenizer().tokenize(sql)
     parser = InsertStatementParser(tokens)
     stmt = parser.parse()
+    expected = InsertStatement(
+        table_name="users",
+        schema_name="main",
+        alias="u",
+        column_names=["id", "name"],
+        values=stmt.values,
+    )
+
+    assert stmt == expected
 
     assert stmt.schema_name == "main"
     assert stmt.table_name == "users"

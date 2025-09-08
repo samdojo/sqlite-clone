@@ -42,17 +42,6 @@ class SelectStatement:
 LiteralType: TypeAlias = int | float | bool | str | bytes | None
 
 
-@dataclass
-class InsertStatement:
-    table_name: str
-    column_name: Column
-    value: LiteralType
-    schema_name: Optional[str] = None
-    if_exists: bool = False
-    alias: Optional[str] = None
-    pass
-
-
 class TypeAffinities(str, Enum):
     INTEGER = "INTEGER"
     TEXT = "TEXT"
@@ -68,9 +57,6 @@ class TypeName:
         tuple[None, None] | tuple[str | float, None] | tuple[str | float, str | float]
     )
     type_affinity: TypeAffinities
-
-
-LiteralType: TypeAlias = int | float | bool | str | bytes | None
 
 
 @dataclass
@@ -166,3 +152,13 @@ class Expression:
     second_expr: Optional[Union["Expression", Literal, ColumnAddress]] = None
     ternary_op: Optional[typing.Literal["AND", "ESCAPE"]] = None
     third_expr: Optional[Union["Expression", Literal, ColumnAddress]] = None
+
+
+@dataclass
+class InsertStatement:
+    table_name: str
+    values: list[Expression]
+    schema_name: Optional[str] = None
+    if_exists: bool = False
+    column_names: Optional[list[str]] = None
+    alias: Optional[str] = None

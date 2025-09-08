@@ -12,20 +12,14 @@ class InsertStatementParser(BaseParser):
     Parser for the basic INSERT ... VALUES (...) form (single row).
     """
 
-    def _consume_keyword(self, expected: str) -> None:
-        if not self.typeMatches(TokenType.KEYWORD) or not self.valueMatches(expected):
-            raise ParsingException(f"Expected {expected}")
-        self.consume(TokenType.KEYWORD)  # consume the keyword
-
     def parse(self) -> InsertStatement:
         # INSERT
-        self._consume_keyword("INSERT")
-
+        self.consume(TokenType.KEYWORD, "INSERT")
         # INTO
-        self._consume_keyword("INTO")
+        self.consume(TokenType.KEYWORD, "INTO")
 
         # target table: [schema.]table [AS alias]
-        qtn = QualifiedTableNameParser(self.tokens).parse()
+        table_ref = QualifiedTableNameParser(self.tokens).parse()
 
         # optional column list:
         column_names: Optional[List[str]] = None
@@ -33,11 +27,12 @@ class InsertStatementParser(BaseParser):
             column_names = ColumnNameListParser(self.tokens).parse()
 
         # VALUES
-        self._consume_keyword("VALUES")
+        self.consume(TokenType.KEYWORD, "VALUES")
 
         # parenthesized value list
         if not self.typeMatches(TokenType.LPAREN):
-            raise ParsingException("Expected '(' after VALUES")
+            got = self.tokens[0] if self.tokens else None
+            raise ParsingException(f"Expected '(' after VALUES, got {got}")
 
         values_expr: Expression = ExpressionParser(self.tokens).parse()
         if values_expr.route != 8 or values_expr.expr_array is None:
@@ -47,9 +42,9 @@ class InsertStatementParser(BaseParser):
 
         # Build the statement (leave any trailing tokens unconsumed)
         return InsertStatement(
-            table_name=qtn.table_name,
-            schema_name=qtn.schema_name,
-            alias=qtn.alias,
+            table_name=table_ref.table_name,
+            schema_name=table_ref.schema_name,
+            alias=table_ref.alias,
             column_names=column_names,
-            values=values,
+            values=values
         )
