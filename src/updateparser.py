@@ -1,12 +1,12 @@
 from typing import List, Optional
-
 from baseparser import BaseParser, ParsingException
-from sqltoken import TokenType
 from statements import UpdateStatement
+from sqltoken import TokenType
 from qualifiedtablenameparser import QualifiedTableNameParser
 from columnnamelistparser import ColumnNameListParser
 from expressionparser import ExpressionParser
 from tableorsubqueryparser import TableOrSubQueryParser
+from typing import List, Optional
 
 
 class UpdateParser(BaseParser):
@@ -15,16 +15,20 @@ class UpdateParser(BaseParser):
     """
 
     def parse(self) -> UpdateStatement:
-        # --- WITH clause, not supported) ---
+        # --- WITH clause (optional) ---
+        with_clause = None
         if self.valueMatches("WITH"):
-            raise ParsingException("Common Table Expressions (WITH clause) not supported yet")
+            super().consume(TokenType.KEYWORD)
+            if self.valueMatches("RECURSIVE"):
+                super().consume(TokenType.KEYWORD)
+            raise ParsingException("Common Table Expressions (WITH clause) are not supported yet")
 
         # --- UPDATE keyword ---
         if not self.valueMatches("UPDATE"):
             raise ParsingException("Expected UPDATE")
         super().consume(TokenType.KEYWORD)
 
-        # --- OR action ---
+        # --- OR action (optional) ---
         or_action = None
         if self.valueMatches("OR"):
             super().consume(TokenType.KEYWORD)
@@ -68,19 +72,27 @@ class UpdateParser(BaseParser):
                     raise ParsingException("Expected '=' after column name list")
                 super().consume(TokenType.EQ)
 
-                expr = self._parse_expression()
+                expr_parser = ExpressionParser(self.tokens[self.pos:])
+                expr = expr_parser.parse()
+                consumed = len(self.tokens[self.pos:]) - len(expr_parser.tokens)
+                self.pos += consumed
+                
                 set_assignments.append({'columns': column_names, 'expression': expr, 'is_column_list': True})
             else:
                 # Single column = expression
                 if not self.typeMatches(TokenType.IDENTIFIER):
                     raise ParsingException("Expected column name in SET assignment")
                 column_name = super().consume(TokenType.IDENTIFIER).value
-
+                
                 if not self.valueMatches("="):
                     raise ParsingException("Expected '=' in SET assignment")
                 super().consume(TokenType.EQ)
 
-                expr = self._parse_expression()
+                expr_parser = ExpressionParser(self.tokens[self.pos:])
+                expr = expr_parser.parse()
+                consumed = len(self.tokens[self.pos:]) - len(expr_parser.tokens)
+                self.pos += consumed
+
                 set_assignments.append({'columns': [column_name], 'expression': expr, 'is_column_list': False})
 
             if self.typeMatches(TokenType.COMMA):
@@ -88,7 +100,7 @@ class UpdateParser(BaseParser):
                 continue
             break
 
-        # --- FROM clause ---
+        # --- FROM clause (optional) ---
         from_clause = None
         if self.valueMatches("FROM"):
             super().consume(TokenType.KEYWORD)
@@ -97,17 +109,31 @@ class UpdateParser(BaseParser):
             consumed = len(self.tokens[self.pos:]) - len(from_parser.tokens)
             self.pos += consumed
 
-        # --- WHERE clause ---
+        # --- WHERE clause (optional) ---
         where_expr = None
         if self.valueMatches("WHERE"):
             super().consume(TokenType.KEYWORD)
-            where_expr = self._parse_expression()
+            expr_parser = ExpressionParser(self.tokens[self.pos:])
+            where_expr = expr_parser.parse()
+            consumed = len(self.tokens[self.pos:]) - len(expr_parser.tokens)
+            self.pos += consumed
 
-        # --- RETURNING clause ---
+        # --- RETURNING clause (optional) ---
         returning_exprs = None
         if self.valueMatches("RETURNING"):
             super().consume(TokenType.KEYWORD)
-            returning_exprs = self._parse_returning_list()
+            expressions = []
+            while True:
+                expr_parser = ExpressionParser(self.tokens[self.pos:])
+                expr = expr_parser.parse()
+                consumed = len(self.tokens[self.pos:]) - len(expr_parser.tokens)
+                self.pos += consumed
+                expressions.append(expr)
+                if self.typeMatches(TokenType.COMMA):
+                    super().consume(TokenType.COMMA)
+                    continue
+                break
+            returning_exprs = expressions
 
         return UpdateStatement(
             table=table,
@@ -115,31 +141,5 @@ class UpdateParser(BaseParser):
             from_clause=from_clause,
             where_expr=where_expr,
             returning_exprs=returning_exprs,
-            or_action=or_action
+            or_action=or_action,
         )
-
-    # --- Helpers ---
-
-    def _parse_expression(self):
-        """Parse a single expression (delegates to ExpressionParser)."""
-        parser = ExpressionParser(self.tokens[self.pos:])
-        expr = parser.parse()
-        consumed = len(self.tokens[self.pos:]) - len(parser.tokens)
-        self.pos += consumed
-        return expr
-
-    def _parse_returning_list(self):
-        """Parse a comma-separated list of RETURNING expressions."""
-        expressions = []
-        while True:
-            expr = self._parse_expression()
-            expressions.append(expr)
-            if self.typeMatches(TokenType.COMMA):
-                super().consume(TokenType.COMMA)
-                continue
-            break
-        return expressions
-
-    def _parse_common_table_expression_list(self, recursive: bool):
-        """CTEs not supported yet."""
-        raise ParsingException("Common Table Expressions (WITH clause) are not supported yet")
