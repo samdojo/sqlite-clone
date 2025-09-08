@@ -23,7 +23,7 @@ class UpdateTableStatement:
 @dataclass
 class CreateTableStatement:
     table_name: str
-    schema_name: Optional[str] # TODO: add support to parser
+    schema_name: Optional[str]  # TODO: add support to parser
     columns: List[Column]
 
 
@@ -39,9 +39,7 @@ class SelectStatement:
     pass
 
 
-@dataclass
-class InsertStatement:
-    pass
+LiteralType: TypeAlias = int | float | bool | str | bytes | None
 
 
 class TypeAffinities(str, Enum):
@@ -59,9 +57,6 @@ class TypeName:
         tuple[None, None] | tuple[str | float, None] | tuple[str | float, str | float]
     )
     type_affinity: TypeAffinities
-
-
-LiteralType: TypeAlias = int | float | bool | str | bytes | None
 
 
 @dataclass
@@ -157,3 +152,13 @@ class Expression:
     second_expr: Optional[Union["Expression", Literal, ColumnAddress]] = None
     ternary_op: Optional[typing.Literal["AND", "ESCAPE"]] = None
     third_expr: Optional[Union["Expression", Literal, ColumnAddress]] = None
+
+
+@dataclass
+class InsertStatement:
+    table_name: str
+    values: list[Expression]
+    schema_name: Optional[str] = None
+    if_exists: bool = False
+    column_names: Optional[list[str]] = None
+    alias: Optional[str] = None
