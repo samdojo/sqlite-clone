@@ -1,7 +1,7 @@
 import pytest
 from sqltokenizer import Tokenizer
 from baseparser import ParsingException
-from statements import Table
+from statements import QualifiedTableName
 from qualifiedtablenameparser import QualifiedTableNameParser
 
 
@@ -15,31 +15,31 @@ class TestQualifiedTableNameParser:
         tokens = self.tokenizer.tokenize("SomeTable")
         parser = QualifiedTableNameParser(tokens)
         result = parser.parse()
-        assert result == Table("SomeTable", None, None)
+        assert result == QualifiedTableName("SomeTable", None, None)
 
     def test_schema_dot_table(self):
         tokens = self.tokenizer.tokenize("SomeSchema.SomeTable")
         parser = QualifiedTableNameParser(tokens)
         result = parser.parse()
-        assert result == Table("SomeTable", "SomeSchema", None)
+        assert result == QualifiedTableName("SomeTable", "SomeSchema", None)
 
     def test_table_as_alias(self):
         tokens = self.tokenizer.tokenize("SomeTable AS t")
         parser = QualifiedTableNameParser(tokens)
         result = parser.parse()
-        assert result == Table("SomeTable", None, "t")
+        assert result == QualifiedTableName("SomeTable", None, "t")
 
     def test_table_implicit_alias(self):
         tokens = self.tokenizer.tokenize("SomeTable t")
         parser = QualifiedTableNameParser(tokens)
         result = parser.parse()
-        assert result == Table("SomeTable", None, "t")
+        assert result == QualifiedTableName("SomeTable", None, "t")
 
     def test_schema_table_with_alias(self):
         tokens = self.tokenizer.tokenize("SomeSchema.SomeTable AS t")
         parser = QualifiedTableNameParser(tokens)
         result = parser.parse()
-        assert result == Table("SomeTable", "SomeSchema", "t")
+        assert result == QualifiedTableName("SomeTable", "SomeSchema", "t")
 
     # Bad Cases
 
