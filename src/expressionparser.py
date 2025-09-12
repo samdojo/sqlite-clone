@@ -11,6 +11,7 @@ BINARIES = [k.value for k in BinaryOperator]
 
 class ColumnAddressParser(BaseParser):
     """Parser for (qualified) column names."""
+
     def parse(self) -> ColumnAddress:
         identifiers = []
         identifiers.append(self.consume(TokenType.IDENTIFIER).value)
@@ -25,7 +26,7 @@ class ColumnAddressParser(BaseParser):
         return ColumnAddress(
             column_name=identifiers[2],
             table_name=identifiers[1],
-            schema_name=identifiers[0]
+            schema_name=identifiers[0],
         )
 
     def parseIfMatches(self) -> Optional[ColumnAddress]:
@@ -54,6 +55,7 @@ class ExpressionParser(BaseParser):
     To specify an alternative grouping, use parentheses:
     - "((x AND y) OR z)" or equivalently "(x AND y) OR z"
     """
+
     def parse(self) -> Expression:
         output = Expression()
         # ROUTE 5: unary-operator
@@ -88,20 +90,24 @@ class ExpressionParser(BaseParser):
         else:
             raise ParsingException("Unable to find parsing route for Expression")
         # ROUTE 12: ISNULL/NOTNULL/NOT NULL
-        if self.isValueOneOf(["ISNULL", "NOTNULL"]) or [k.value for k in self.tokens][:2] == ["NOT", "NULL"]:
+        if self.isValueOneOf(["ISNULL", "NOTNULL"]) or [k.value for k in self.tokens][
+            :2
+        ] == ["NOT", "NULL"]:
             null_str = self.consume(TokenType.KEYWORD).value
             if null_str == "NOT":
                 null_str += " " + self.consume(TokenType.KEYWORD, "NULL").value
             output = Expression(
                 lead_expr=Expression(
-                    unary_op=null_str,
-                    route=12,
-                    lead_expr=output.lead_expr
+                    unary_op=null_str, route=12, lead_expr=output.lead_expr
                 )
             )
         # ROUTE 11: NOT/LIKE part
         route_11_keys = ["LIKE", "GLOB", "REGEXP", "MATCH"]
-        if self.isValueOneOf(route_11_keys) or (len(self.tokens) >1 and self.valueMatches("NOT") and self.tokens[1].value in route_11_keys):
+        if self.isValueOneOf(route_11_keys) or (
+            len(self.tokens) > 1
+            and self.valueMatches("NOT")
+            and self.tokens[1].value in route_11_keys
+        ):
             if self.valueMatches("NOT"):
                 binary_str = self.consume(TokenType.KEYWORD, "NOT").value
                 binary_str += " " + self.consume(TokenType.KEYWORD).value
@@ -125,7 +131,10 @@ class ExpressionParser(BaseParser):
             output.second_expr = ExpressionParser(self.tokens).parse()
             output.route = 13
         # ROUTE 14: BETWEEN
-        elif self.valueMatches("BETWEEN") or [k.value for k in self.tokens][:2] == ["NOT", "BETWEEN"]:
+        elif self.valueMatches("BETWEEN") or [k.value for k in self.tokens][:2] == [
+            "NOT",
+            "BETWEEN",
+        ]:
             if self.valueMatches("BETWEEN"):
                 between_op = self.consume(TokenType.KEYWORD, "BETWEEN").value
             else:
@@ -134,7 +143,9 @@ class ExpressionParser(BaseParser):
             output.binary_op = between_op
             output.route = 14
             and_expr = ExpressionParser(self.tokens).parse()
-            if not ((and_expr.route == 6) and (and_expr.binary_op == BinaryOperator.AND)):
+            if not (
+                (and_expr.route == 6) and (and_expr.binary_op == BinaryOperator.AND)
+            ):
                 raise ParsingException("BETWEEN expression missing AND operator")
             output.second_expr = and_expr.lead_expr
             output.ternary_op = "AND"

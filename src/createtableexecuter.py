@@ -10,7 +10,7 @@ class CreateTableExecuter:
         if input.table_name in schema:
             raise ExecutingException('table already exists')
 
-        schema[input.table_name] = Table()
+        schema[input.table_name] = Table(column_list=[col.name for col in input.columns])
         table = schema[input.table_name]
 
         for col in input.columns:
