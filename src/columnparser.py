@@ -1,7 +1,8 @@
 from typing import List, Optional
-from statements import Column
+
 from baseparser import BaseParser, ParsingException
 from sqltoken import Token, TokenType
+from statements import Column
 
 
 class ColumnParser(BaseParser):
@@ -18,16 +19,19 @@ class ColumnParser(BaseParser):
 
         # optional type
         col_type = None
-        if self.tokens and (self.typeMatches(TokenType.IDENTIFIER) or self.typeMatches(TokenType.KEYWORD)):
+        if self.tokens and (
+            self.typeMatches(TokenType.IDENTIFIER)
+            or self.typeMatches(TokenType.KEYWORD)
+        ):
             col_type = self.consume(self.tokens[0].type).value
 
             # handle type args in parentheses (e.g. VARCHAR(255), DECIMAL(10,2))
             if self.tokens and self.valueMatches("("):
-                args = [self.consume(TokenType.SYMBOL, "(").value]
+                args = [self.consume(TokenType.LPAREN, "(").value]
                 while self.tokens and not self.valueMatches(")"):
                     args.append(self.consume(self.tokens[0].type).value)
                 if self.tokens and self.valueMatches(")"):
-                    args.append(self.consume(TokenType.SYMBOL, ")").value)
+                    args.append(self.consume(TokenType.RPAREN, ")").value)
                 col_type += "".join(args)
 
         # defaults
@@ -45,7 +49,7 @@ class ColumnParser(BaseParser):
             # stop at column separator
             if token.value in {",", ")"}:
                 break
-                
+
             if tok_val == "DEFAULT":
                 self.consume(TokenType.KEYWORD, "DEFAULT")
                 if self.tokens:
@@ -75,5 +79,5 @@ class ColumnParser(BaseParser):
             default=default_value,
             primary_key=primary_key,
             unique=unique,
-            constraints=constraints
+            constraints=constraints,
         )

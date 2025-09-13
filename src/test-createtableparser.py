@@ -104,15 +104,26 @@ class TestCreateTableParser:
             )
         ]
 
-    def test_parse_table_with_parenthesis_type(self):  # Currently not supported
-        tokens = self.tokenizer.tokenize("CREATE TABLE test (name VARCHAR(255))")
+    def test_parse_table_with_parenthesis_type(self):
+        tokens = self.tokenizer.tokenize(
+            "CREATE TABLE test (id INT, name VARCHAR(255))"
+        )
         parser = CreateTableParser(tokens)
         result = parser.parse()
         assert result.table_name == "test"
         assert result.columns == [
             Column(
+                name="id",
+                type="INT",
+                nullable=True,
+                default=None,
+                primary_key=False,
+                unique=False,
+                constraints=[],
+            ),
+            Column(
                 name="name",
-                type="VARCHAR",
+                type="VARCHAR(255)",
                 nullable=True,
                 default=None,
                 primary_key=False,
