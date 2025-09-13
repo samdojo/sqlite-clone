@@ -1,7 +1,9 @@
+from baseexecuter import ExecutingException
 from sqltokenizer import Tokenizer
 from data import Database, Column as OutColumn, Table, Schema
 from insertexecutor import InsertTableExecutor
 from insertparser import InsertStatementParser
+import pytest
 
 
 class TestLiteralParser:
@@ -18,6 +20,9 @@ class TestLiteralParser:
         schema["test_table2"]["colB"] = OutColumn(type=float, default=5.5)
         schema["test_table2"]["colC"] = OutColumn(type=int, default=None)
         schema["test_table2"]["colD"] = OutColumn(type=bool, default=True)
+        schema["test_table3"] = Table(column_list=["col4", "col5", ])
+        schema["test_table3"]["col4"] = OutColumn(type=int, default=None)
+        schema["test_table3"]["col5"] = OutColumn(type=int, default=10)
         self.exec = InsertTableExecutor()
         self.tokenizer = Tokenizer()
 
@@ -86,3 +91,57 @@ class TestLiteralParser:
         assert col3_final == 3
         col3_final = len(target_tbl["colD"].get(True))
         assert col3_final == 3
+
+    def test_too_few_values_explicit(self):
+        schema = "test_schema"
+        tbl = "test_table3"
+        target_tbl = self.db[schema][tbl]
+        tokens = self.tokenizer.tokenize(f"INSERT INTO {schema}.{tbl} (col4, col5) VALUES (1)")
+        insert_statement = InsertStatementParser(tokens).parse()
+        with pytest.raises(ExecutingException) as p_err:
+            self.exec.execute(self.db, insert_statement)
+        assert p_err.errisinstance(ExecutingException)
+        assert len(target_tbl["col4"].get(1)) == 0 
+
+    def test_too_few_values_implicit(self):
+        schema = "test_schema"
+        tbl = "test_table3"
+        target_tbl = self.db[schema][tbl]
+        tokens = self.tokenizer.tokenize(f"INSERT INTO {schema}.{tbl} VALUES (1)")
+        insert_statement = InsertStatementParser(tokens).parse()
+        with pytest.raises(ExecutingException) as p_err:
+            self.exec.execute(self.db, insert_statement)
+        assert p_err.errisinstance(ExecutingException)
+        assert len(target_tbl["col4"].get(1)) == 0 
+
+    def test_too_many_values(self):
+        schema = "test_schema"
+        tbl = "test_table3"
+        target_tbl = self.db[schema][tbl]
+        tokens = self.tokenizer.tokenize(f"INSERT INTO {schema}.{tbl} VALUES (1, 2, 3 )")
+        insert_statement = InsertStatementParser(tokens).parse()
+        with pytest.raises(ExecutingException) as p_err:
+            self.exec.execute(self.db, insert_statement)
+        assert p_err.errisinstance(ExecutingException)
+        assert len(target_tbl["col4"].get(1)) == 0 
+
+    def test_wrong_columns(self):
+        schema = "test_schema"
+        tbl = "test_table3"
+        tokens = self.tokenizer.tokenize(f"INSERT INTO {schema}.{tbl} (colAA, colBB) VALUES (1, 2)")
+        insert_statement = InsertStatementParser(tokens).parse()
+        with pytest.raises(ExecutingException) as p_err:
+            self.exec.execute(self.db, insert_statement)
+        assert p_err.errisinstance(ExecutingException)
+
+    def test_wrong_datatypes(self):
+        schema = "test_schema"
+        tbl = "test_table3"
+        target_tbl = self.db[schema][tbl]
+        tokens = self.tokenizer.tokenize(f"INSERT INTO {schema}.{tbl} (col4, col5) VALUES (1.0, 'ROW_VAL')")
+        insert_statement = InsertStatementParser(tokens).parse()
+        with pytest.raises(ExecutingException) as p_err:
+            self.exec.execute(self.db, insert_statement)
+        assert p_err.errisinstance(ExecutingException)
+        assert len(target_tbl["col4"].get(1)) == 0 
+
