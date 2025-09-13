@@ -1,5 +1,6 @@
 from dataclasses import dataclass, field
 from enum import Enum
+import enum
 from typing import Any, List, Optional, Type, TypeAlias, Union
 import typing
 
@@ -137,6 +138,13 @@ BinaryLiterals = typing.Literal[
 ]
 
 
+def bitwise_not(in_bytes: bytes) -> bytes:
+    buffer = bytearray(in_bytes)
+    for i, b in enumerate(buffer):
+        buffer[i] = ~b & 0xFF
+    return bytes(buffer)
+
+
 @dataclass
 class Expression:
     """Dataclass for SQLite expressions.
@@ -153,6 +161,52 @@ class Expression:
     ternary_op: Optional[typing.Literal["AND", "ESCAPE"]] = None
     third_expr: Optional[Union["Expression", Literal, ColumnAddress]] = None
 
+    def apply_unary_operator(self) -> tuple[bool, "Expression"]:
+        """Attempts to apply a unary operator to the leading
+        term of the expression. Failure to do so cleanly is a
+        no-op.
+
+        First term of output is True if Expression was reduced.
+        First term is False if no unary operator was applied."""
+        if self.route != 5:
+            return False, self
+        # Simple statements where unary operator is directly followed by a literal,
+        # i.e. +10, NOT TRUE, -3.0
+        if (self.unary_op == UnaryOperator.POSITIVE) and (self.lead_expr.route == 1) and (self.lead_expr.lead_expr.dtype in {int, float}):
+            return True, self.lead_expr
+        if (self.unary_op == UnaryOperator.NEGATIVE) and (self.lead_expr.route == 1) and (self.lead_expr.lead_expr.dtype in {int, float}):
+            out_expression = self.lead_expr
+            out_expression.lead_expr.value *= -1
+            return True, out_expression
+        if (self.unary_op == UnaryOperator.NOT) and (self.lead_expr.route == 1) and (self.lead_expr.lead_expr.dtype == bool):
+            out_expression = self.lead_expr
+            out_expression.lead_expr.value = not out_expression.lead_expr.value
+            return True, out_expression
+        if (self.unary_op == UnaryOperator.BITWISE_NOT) and (self.lead_expr.route == 1) and (self.lead_expr.lead_expr.dtype == bytes):
+            out_expression = self.lead_expr
+            out_expression.lead_expr.value = bitwise_not(out_expression.lead_expr.value)
+            return True, out_expression
+        # Else, assume expression in format like UNARY Expr(Expr(LITERAL) BINARY EXPR(...)...)
+        try:
+            if (self.unary_op == UnaryOperator.POSITIVE) and (self.lead_expr.binary_op is not None) and (self.lead_expr.lead_expr.route == 1) and (self.lead_expr.lead_expr.lead_expr.dtype in {int, float}):
+                return True, self.lead_expr
+        except _:
+            if (self.unary_op == UnaryOperator.NEGATIVE) and (self.lead_expr.binary_op is not None) and (self.lead_expr.lead_expr.route == 1) and (self.lead_expr.lead_expr.lead_expr.dtype in {int, float}):
+                out_expression = self.lead_expr
+                out_expression.lead_expr.lead_expr.value *= -1
+                return True, out_expression
+        except _:
+            if (self.unary_op == UnaryOperator.NOT) and (self.lead_expr.binary_op is not None) and (self.lead_expr.lead_expr.route == 1) and (self.lead_expr.lead_expr.lead_expr.dtype == bool ):
+                out_expression = self.lead_expr
+                out_expression.lead_expr.lead_expr.value = not out_expression.lead_expr.value
+                return True, out_expression
+        except _:
+            if (self.unary_op == UnaryOperator.BITWISE_NOT) and (self.lead_expr.binary_op is not None) and (self.lead_expr.lead_expr.route == 1) and (self.lead_expr.lead_expr.lead_expr.dtype == bytes):
+                out_expression = self.lead_expr
+                out_expression.lead_expr.lead_expr.value = bitwise_not(out_expression.lead_expr.value)
+                return True, out_expression
+        finally:
+            return False, self
 
 @dataclass
 class InsertStatement:

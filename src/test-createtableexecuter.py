@@ -1,5 +1,5 @@
 from statements import CreateTableStatement, Column as InColumn
-from data import Database, Column as OutColumn
+from data import Database, Column as OutColumn, Table
 from createtableexecuter import CreateTableExecuter
 
 
@@ -16,7 +16,7 @@ class TestLiteralParser:
         assert isinstance(default_schema, dict)
         assert len(default_schema) == 1
         person_table = default_schema['Person']
-        assert isinstance(person_table, dict)
+        assert isinstance(person_table, Table)
         assert len(person_table) == 2
         col1 = person_table['name']
         assert isinstance(col1, OutColumn)
@@ -33,7 +33,7 @@ class TestLiteralParser:
         assert isinstance(default_schema, dict)
         assert len(default_schema) == 1
         person_table = default_schema['Person']
-        assert isinstance(person_table, dict)
+        assert isinstance(person_table, Table)
         assert len(person_table) == 2
         col1 = person_table['name']
         assert isinstance(col1, OutColumn)
