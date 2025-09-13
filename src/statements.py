@@ -1,8 +1,8 @@
+import typing
 from dataclasses import dataclass, field
 from enum import Enum
 import enum
 from typing import Any, List, Optional, Type, TypeAlias, Union
-import typing
 
 
 @dataclass
