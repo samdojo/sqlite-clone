@@ -5,9 +5,7 @@ from sqltokenizer import Tokenizer
 
 
 def tokenize(sql_fragment: str):
-    """
-    Helper to run Tokenizer on a SQL statement.
-    """
+    """Helper to run Tokenizer on a SQL statement."""
     tokenizer = Tokenizer()
     return tokenizer.tokenize(sql_fragment) 
 
@@ -49,6 +47,7 @@ class TestSelectParser(unittest.TestCase):
         self.assertEqual(stmt.table, "logs")
         self.assertEqual(stmt.where, "level = 'ERROR' AND date > '2024-01-01'")
 
+    # Existing edge cases
     def test_missing_from(self):
         tokens = tokenize("SELECT id, name users")  # missing FROM keyword
         parser = SelectParser(tokens)
@@ -57,6 +56,25 @@ class TestSelectParser(unittest.TestCase):
 
     def test_missing_columns(self):
         tokens = tokenize("SELECT FROM users")  # missing columns
+        parser = SelectParser(tokens)
+        with self.assertRaises(Exception):
+            parser.parse()
+
+    # Additional edge cases suggested by Sam
+    def test_empty_column_before_comma(self):
+        tokens = tokenize("SELECT , FROM users")
+        parser = SelectParser(tokens)
+        with self.assertRaises(Exception):
+            parser.parse()
+
+    def test_empty_column_before_valid_column(self):
+        tokens = tokenize("SELECT , id FROM users")
+        parser = SelectParser(tokens)
+        with self.assertRaises(Exception):
+            parser.parse()
+
+    def test_missing_comma_between_columns(self):
+        tokens = tokenize("SELECT id name FROM users")
         parser = SelectParser(tokens)
         with self.assertRaises(Exception):
             parser.parse()

@@ -2,7 +2,7 @@ from dataclasses import dataclass, field
 from enum import Enum
 from typing import Any, List, Optional, Type, TypeAlias, Union
 import typing
-
+from typing import List
 
 @dataclass
 class Column:
@@ -38,7 +38,7 @@ class DropTableStatement:
 class SelectStatement:
     columns: List[str]
     table: str
-    where: Optional[str] = None
+    where: List["Expression"] = field(default_factory=list)
 
 
 @dataclass
