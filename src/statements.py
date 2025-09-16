@@ -37,7 +37,9 @@ class DropTableStatement:
 
 @dataclass
 class SelectStatement:
-    pass
+    columns: List[str]
+    table: str
+    where: Optional[str] = None
 
 
 LiteralType: TypeAlias = int | float | bool | str | bytes | None
