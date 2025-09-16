@@ -15,12 +15,13 @@ class Column:
 
 @dataclass
 class UpdateStatement:
-    table: Table
+    table: "Table"
     set_assignments: List[dict[str, Any]]
     from_clause: Optional[Any] = None
-    where_expr: Optional[Expression] = None
-    returning_exprs: Optional[List[Expression]] = None
+    where_expr: Optional["Expression"] = None
+    returning_exprs: Optional[List["Expression"]] = None
     or_action: Optional[str] = None
+
 
 
 @dataclass
