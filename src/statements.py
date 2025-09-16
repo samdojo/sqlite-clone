@@ -14,8 +14,13 @@ class Column:
     constraints: list[str] = field(default_factory=list) 
 
 @dataclass
-class UpdateTableStatement:
-    pass
+class UpdateStatement:
+    table: Table
+    set_assignments: List[dict[str, Any]]
+    from_clause: Optional[Any] = None
+    where_expr: Optional[Expression] = None
+    returning_exprs: Optional[List[Expression]] = None
+    or_action: Optional[str] = None
 
 
 @dataclass
