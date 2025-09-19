@@ -57,7 +57,6 @@ class UpdateParser(BaseParser):
         set_assignments = []
         while True:
             if self.valueMatches("("):
-                # Column-name-list = row-value
                 col_parser = ColumnNameListParser(self.tokens)
                 column_names = col_parser.parse()
                 self.tokens = col_parser.tokens
@@ -76,7 +75,6 @@ class UpdateParser(BaseParser):
                     'is_column_list': True
                 })
             else:
-                # Single column = expression
                 if not self.typeMatches(TokenType.IDENTIFIER):
                     raise ParsingException("Expected column name in SET assignment")
                 column_name = self.consume(TokenType.IDENTIFIER).value
@@ -100,7 +98,6 @@ class UpdateParser(BaseParser):
                 continue
             break
 
-        # --- FROM clause (optional) ---
         from_clause = None
         if self.valueMatches("FROM"):
             self.consume(TokenType.KEYWORD)
@@ -108,7 +105,6 @@ class UpdateParser(BaseParser):
             from_clause = from_parser.parse()
             self.tokens = from_parser.tokens
 
-        # --- WHERE clause (optional) ---
         where_expr = None
         if self.valueMatches("WHERE"):
             self.consume(TokenType.KEYWORD)
@@ -116,7 +112,6 @@ class UpdateParser(BaseParser):
             where_expr = expr_parser.parse()
             self.tokens = expr_parser.tokens
 
-        # --- RETURNING clause (optional) ---
         returning_exprs = None
         if self.valueMatches("RETURNING"):
             self.consume(TokenType.KEYWORD)
