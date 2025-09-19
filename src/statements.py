@@ -1,6 +1,6 @@
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Any, List, Optional, Type, TypeAlias, Union
+from typing import Any, Dict, List, Optional, Type, TypeAlias, Union
 
 
 @dataclass
@@ -15,12 +15,12 @@ class Column:
 
 @dataclass
 class UpdateStatement:
-    table: "Table"
-    set_assignments: List[dict[str, Any]]
-    from_clause: Optional[Any] = None
-    where_expr: Optional["Expression"] = None
-    returning_exprs: Optional[List["Expression"]] = None
-    or_action: Optional[str] = None
+    table: Any  # QualifiedTableName
+    set_assignments: List[Dict[str, Any]]  # [{'columns': [...], 'expression': ..., 'is_column_list': bool}]
+    from_clause: Optional[Any] = None  # TableOrSubQuery
+    where_expr: Optional[Any] = None   # Expression
+    returning_exprs: Optional[List[Any]] = None  # List[Expression]
+    or_action: Optional[str] = None    # "ABORT", "FAIL", "IGNORE", "REPLACE", "ROLLBACK"
 
 
 

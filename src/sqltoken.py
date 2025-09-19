@@ -10,6 +10,7 @@ class TokenType(Enum):
 
     OPERATOR = "OPERATOR"
     COMPARISON = "COMPARISON"
+    EQ = "EQ"  # '=' operator
 
     COMMA = "COMMA"
     SEMICOLON = "SEMICOLON"

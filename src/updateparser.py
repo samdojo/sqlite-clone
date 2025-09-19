@@ -15,7 +15,6 @@ class UpdateParser(BaseParser):
 
     def parse(self) -> UpdateStatement:
         # --- WITH clause (optional) ---
-        with_clause = None
         if self.valueMatches("WITH"):
             self.consume(TokenType.KEYWORD)
             if self.valueMatches("RECURSIVE"):
@@ -42,9 +41,7 @@ class UpdateParser(BaseParser):
             elif self.valueMatches("ROLLBACK"):
                 or_action = "ROLLBACK"
             else:
-                raise ParsingException(
-                    "Expected ABORT, FAIL, IGNORE, REPLACE, or ROLLBACK after OR"
-                )
+                raise ParsingException("Expected ABORT, FAIL, IGNORE, REPLACE, or ROLLBACK after OR")
             self.consume(TokenType.KEYWORD)
 
         # --- Qualified table name ---
@@ -72,14 +69,18 @@ class UpdateParser(BaseParser):
                 expr_parser = ExpressionParser(self.tokens)
                 expr = expr_parser.parse()
                 self.tokens = expr_parser.tokens
-                
-                set_assignments.append({'columns': column_names, 'expression': expr, 'is_column_list': True})
+
+                set_assignments.append({
+                    'columns': column_names,
+                    'expression': expr,
+                    'is_column_list': True
+                })
             else:
                 # Single column = expression
                 if not self.typeMatches(TokenType.IDENTIFIER):
                     raise ParsingException("Expected column name in SET assignment")
                 column_name = self.consume(TokenType.IDENTIFIER).value
-                
+
                 if not self.valueMatches("="):
                     raise ParsingException("Expected '=' in SET assignment")
                 self.consume(TokenType.EQ)
@@ -88,7 +89,11 @@ class UpdateParser(BaseParser):
                 expr = expr_parser.parse()
                 self.tokens = expr_parser.tokens
 
-                set_assignments.append({'columns': [column_name], 'expression': expr, 'is_column_list': False})
+                set_assignments.append({
+                    'columns': [column_name],
+                    'expression': expr,
+                    'is_column_list': False
+                })
 
             if self.typeMatches(TokenType.COMMA):
                 self.consume(TokenType.COMMA)
