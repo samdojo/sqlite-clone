@@ -17,7 +17,7 @@ class Tokenizer:
             'INT', 'INTEGER', 'VARCHAR', 'CHAR', 'TEXT', 'DATE', 'DATETIME', 'TIMESTAMP',
             'BOOLEAN', 'BOOL', 'DECIMAL', 'NUMERIC', 'FLOAT', 'DOUBLE', 'REAL', 'COUNT',
             'ASC', 'DESC', 'CURRENT_TIME', 'CURRENT_DATE', 'CURRENT_TIMESTAMP', 'TRUE',
-            'FALSE'
+            'FALSE', "ISNULL", "NOTNULL", "ESCAPE", "GLOB", "REGEXP", "MATCH"
         }
 
         self.token_patterns = [
@@ -117,6 +117,8 @@ if __name__ == "__main__":
       AND p.created_at >= '2023-01-01'
     ORDER BY p.created_at DESC
     LIMIT 10;
+    TINYINT MEDIUMINT INT INTEGER INT8 BLOB VARCHAR VARCHAR(255)
+    DECIMAL(10,5)
     """
 
     print("Tokenizing query:")
