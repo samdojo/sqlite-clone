@@ -64,7 +64,7 @@ class UpdateParser(BaseParser):
 
                 if not self.valueMatches("="):
                     raise ParsingException("Expected '=' after column name list")
-                self.consume(TokenType.EQ)
+                self.consume(TokenType.OPERATOR, "=")
 
                 expr_parser = ExpressionParser(self.tokens)
                 expr = expr_parser.parse()
@@ -83,7 +83,7 @@ class UpdateParser(BaseParser):
 
                 if not self.valueMatches("="):
                     raise ParsingException("Expected '=' in SET assignment")
-                self.consume(TokenType.EQ)
+                self.consume(TokenType.OPERATOR, "=")
 
                 expr_parser = ExpressionParser(self.tokens)
                 expr = expr_parser.parse()
