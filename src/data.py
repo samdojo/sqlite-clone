@@ -177,12 +177,43 @@ class Table:
                 f"Columns {list(set(entry_data.keys()) - set(self.ordered_columns))} included in INSERT statement but do not exist in Table."
             )
         entry = self.create_entry(entry_data)
+        self.insert_entry(entry)
+
+    def insert_entry(self, entry: Entry):
         for name, col in self.tbl.items():
             col.append(entry[name], entry)
+
+    # TODO: Need to add test
+    def delete_entry(self, entry: Entry):
+        for c in self.ordered_columns:
+            column = self[c]
+            entries = column.get(entry[c])
+            idx = safe_index_entries(entries, entry)
+            if (len(entries) == 0) or (idx < 0):
+                continue
+            entries.pop(idx)
 
     def keys(self):
         return self.tbl.keys()
 
+    def get_rows(self) -> list[Entry]:
+        """Returns all Entries stored within the given table.
+
+        Relies on the fact that all Columns should contain the same
+        entries to retrieve the list of entries from the first column."""
+        first_col = self[self.ordered_columns[0]]
+        entries = []
+        for key in first_col:
+            entries.extend(first_col[key])
+        return entries
+
+
+
+def safe_index_entries(lst: list[Entry], entry: Entry) -> int:
+    try:
+        return lst.index(entry)
+    except ValueError:
+        return -1
 
 Schema = dict[str, Table]
 
