@@ -15,7 +15,6 @@ class UpdateParser(BaseParser):
 
     def parse(self) -> UpdateStatement:
         # --- WITH clause (optional) ---
-        with_clause = None
         if self.valueMatches("WITH"):
             self.consume(TokenType.KEYWORD)
             if self.valueMatches("RECURSIVE"):
@@ -42,9 +41,7 @@ class UpdateParser(BaseParser):
             elif self.valueMatches("ROLLBACK"):
                 or_action = "ROLLBACK"
             else:
-                raise ParsingException(
-                    "Expected ABORT, FAIL, IGNORE, REPLACE, or ROLLBACK after OR"
-                )
+                raise ParsingException("Expected ABORT, FAIL, IGNORE, REPLACE, or ROLLBACK after OR")
             self.consume(TokenType.KEYWORD)
 
         # --- Qualified table name ---
@@ -60,42 +57,47 @@ class UpdateParser(BaseParser):
         set_assignments = []
         while True:
             if self.valueMatches("("):
-                # Column-name-list = row-value
                 col_parser = ColumnNameListParser(self.tokens)
                 column_names = col_parser.parse()
                 self.tokens = col_parser.tokens
 
                 if not self.valueMatches("="):
                     raise ParsingException("Expected '=' after column name list")
-                self.consume(TokenType.EQ)
+                self.consume(TokenType.OPERATOR, "=")
 
                 expr_parser = ExpressionParser(self.tokens)
                 expr = expr_parser.parse()
                 self.tokens = expr_parser.tokens
-                
-                set_assignments.append({'columns': column_names, 'expression': expr, 'is_column_list': True})
+
+                set_assignments.append({
+                    'columns': column_names,
+                    'expression': expr,
+                    'is_column_list': True
+                })
             else:
-                # Single column = expression
                 if not self.typeMatches(TokenType.IDENTIFIER):
                     raise ParsingException("Expected column name in SET assignment")
                 column_name = self.consume(TokenType.IDENTIFIER).value
-                
+
                 if not self.valueMatches("="):
                     raise ParsingException("Expected '=' in SET assignment")
-                self.consume(TokenType.EQ)
+                self.consume(TokenType.OPERATOR, "=")
 
                 expr_parser = ExpressionParser(self.tokens)
                 expr = expr_parser.parse()
                 self.tokens = expr_parser.tokens
 
-                set_assignments.append({'columns': [column_name], 'expression': expr, 'is_column_list': False})
+                set_assignments.append({
+                    'columns': [column_name],
+                    'expression': expr,
+                    'is_column_list': False
+                })
 
             if self.typeMatches(TokenType.COMMA):
                 self.consume(TokenType.COMMA)
                 continue
             break
 
-        # --- FROM clause (optional) ---
         from_clause = None
         if self.valueMatches("FROM"):
             self.consume(TokenType.KEYWORD)
@@ -103,7 +105,6 @@ class UpdateParser(BaseParser):
             from_clause = from_parser.parse()
             self.tokens = from_parser.tokens
 
-        # --- WHERE clause (optional) ---
         where_expr = None
         if self.valueMatches("WHERE"):
             self.consume(TokenType.KEYWORD)
@@ -111,7 +112,6 @@ class UpdateParser(BaseParser):
             where_expr = expr_parser.parse()
             self.tokens = expr_parser.tokens
 
-        # --- RETURNING clause (optional) ---
         returning_exprs = None
         if self.valueMatches("RETURNING"):
             self.consume(TokenType.KEYWORD)
