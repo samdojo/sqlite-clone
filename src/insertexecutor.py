@@ -36,4 +36,4 @@ class InsertTableExecutor:
                     f"Found non-literal data {expr} in VALUE list of INSERT statement."
                 )
             insert_map[insert_columns[idx]] = expr.lead_expr
-        table.add_entry(insert_map)
+        table.add_row(insert_map)

@@ -1,14 +1,13 @@
-from dataclasses import dataclass
-from typing import Any, Generic, Iterator, Literal, NamedTuple, Optional, TypeVar
+from typing import Any, Generic, ItemsView, Iterator, KeysView, Literal, Mapping, NamedTuple, Optional, TypeVar, ValuesView
 from avltree import AvlTree
 import itertools
 
 from baseexecuter import ExecutingException
-from statements import Expression, LiteralType
+from statements import Expression, LiteralType, Literal as LitExpr
 from collections import namedtuple
 
 
-class Entry:
+class Entry(Mapping):
     """A table row based off a NamedTuple.
 
     Entries should not be created directly. Each Table
@@ -34,6 +33,38 @@ class Entry:
         if isinstance(key, int):
             return self.row[key]
         return getattr(self.row, key)
+
+    def __len__(self) -> int:
+        return len(self.row)
+
+    def __iter__(self) -> Any:
+        return self.row.__iter__()
+
+    def __eq__(self, other: object, /) -> bool:
+        return self.row == other
+
+    def __ne__(self, value: object, /) -> bool:
+        return self.row.__ne__(value)
+
+    def __contains__(self, key: object) -> bool:
+        return key in self.row._fields
+
+    def __repr__(self) -> str:
+        return repr(self.row)
+
+    def keys(self) -> KeysView[str]:
+        return self.row._asdict().keys()
+    
+    def values(self) -> ValuesView[Any]:
+        return self.row._asdict().values()
+
+    def items(self) -> ItemsView[str, Any]:
+        return self.row._asdict().items()
+
+    def get(self, key: str, default: Any = None) -> Any:
+        if key not in self.row._fields:
+            return default
+        return self[key]
 
 
 C = TypeVar("C", bound=LiteralType)
@@ -146,7 +177,14 @@ class Table:
     def __len__(self) -> int:
         return len(self.tbl)
 
-    def create_entry(self, entry: dict[str, Expression]) -> Entry:
+    @classmethod
+    def from_dict(cls, schema: dict[str, Column]) -> 'Table':
+        tbl = Table(column_list=list(schema.keys()))
+        for k, col in schema.items():
+            tbl[k] = col
+        return tbl
+
+    def create_entry(self, entry: dict[str, LitExpr]) -> Entry:
         """Entry constructor method. Use over directly
         constructing an Entry since Entry is an immutable tuple,
         and Entry's schema is associated with the table the Entry
@@ -164,12 +202,12 @@ class Table:
             entry_data[col] = value
         return Entry(row=self.entry_type(**entry_data))
 
-    def add_entry(self, entry_data: dict[str, Expression]):
+    def add_row(self, entry_data: dict[str, LitExpr]):
         """Takes in data and constructs an Entry which is added to
         every column in the Table.
 
-        You can pass in only a subset of all available rows on the
-        table and add_entry will apply any relevant defaults and
+        You can pass in only a subset of all available columns on the
+        table and add_row will apply any relevant defaults and
         validate that the data passed for each column is of the appropriate
         data type."""
         if len(set(entry_data.keys()) - set(self.ordered_columns)) != 0:
@@ -192,6 +230,11 @@ class Table:
             if (len(entries) == 0) or (idx < 0):
                 continue
             entries.pop(idx)
+
+    # TODO: Need to add test
+    def update_entry(self, old: Entry, new: Entry):
+        self.delete_entry(old)
+        self.insert_entry(new)
 
     def keys(self):
         return self.tbl.keys()

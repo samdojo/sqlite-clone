@@ -1,7 +1,7 @@
 import typing
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Any, Dict, List, Optional, Type, TypeAlias, Union
+from typing import Any, Dict, List, Mapping, Optional, Type, TypeAlias, Union
 
 
 @dataclass
@@ -111,6 +111,58 @@ class BinaryOperator(str, Enum):
     AND = "AND"
     OR = "OR"
 
+    def execute_op(self, a, b):
+        if self == BinaryOperator.AND:
+            if a is None and b is None:
+                return None
+            if a is None:
+                return bool(b) if bool(b) is False else None
+            if b is None:
+                return bool(a) if bool(a) is False else None
+            return a and b
+        if self == BinaryOperator.OR:
+            if a is None and b is None:
+                return None
+            if a is None:
+                return bool(b) if bool(b) is True else None
+            if b is None:
+                return bool(a) if bool(a) is True else None
+            return a or b
+        if a is None or b is None:
+            return None
+        if self == BinaryOperator.STRING_CONCAT:
+            return a + b
+        if self == BinaryOperator.MULT:
+            return a * b
+        if self == BinaryOperator.DIVIDE:
+            return a / b
+        if self == BinaryOperator.MOD:
+            return a % b
+        if self == BinaryOperator.PLUS:
+            return a + b
+        if self == BinaryOperator.MINUS:
+            return a - b
+        if self == BinaryOperator.AMPERSAND:
+            return bitwise_and(a, b)
+        if self == BinaryOperator.BAR:
+            return bitwise_or(a, b)
+        if self == BinaryOperator.LESS:
+            return a < b
+        if self == BinaryOperator.GREATER:
+            return a > b
+        if self == BinaryOperator.LESS_EQ:
+            return a <= b
+        if self == BinaryOperator.GREATER_EQ:
+            return a >= b
+        if self == BinaryOperator.EQLS:
+            return a == b
+        if self == BinaryOperator.DBL_EQLS:
+            return a == b
+        if self == BinaryOperator.DIAMOND:
+            return a != b
+        if self == BinaryOperator.NOT_EQLS:
+            return a != b
+
 
 @dataclass
 class ColumnAddress:
@@ -146,6 +198,18 @@ def bitwise_not(in_bytes: bytes) -> bytes:
     buffer = bytearray(in_bytes)
     for i, b in enumerate(buffer):
         buffer[i] = ~b & 0xFF
+    return bytes(buffer)
+
+def bitwise_and(b1: bytes, b2: bytes) -> bytes:
+    buffer = bytearray(b1)
+    for i, b_i in enumerate(buffer):
+        buffer[i] = b_i & b2[i]
+    return bytes(buffer)
+
+def bitwise_or(b1: bytes, b2: bytes) -> bytes:
+    buffer = bytearray(b1)
+    for i, b_i in enumerate(buffer):
+        buffer[i] = b_i | b2[i]
     return bytes(buffer)
 
 
@@ -211,6 +275,47 @@ class Expression:
                 return True, out_expression
         finally:
             return False, self
+
+    def evaluate(self, row: Mapping):
+        if self.route == 1:
+            return self.lead_expr.value
+        if self.route == 3:
+            return row[self.lead_expr.column_name]
+        if self.route == 5:
+            fully_reduced = False
+            expr = self
+            while not fully_reduced:
+                done, new_expression = expr.apply_unary_operator()
+                fully_reduced = done
+                expr = new_expression
+            return expr.evaluate(row)
+        if self.route == 6:
+            return self.binary_op.execute_op(self.lead_expr.evaluate(row), self.second_expr.evaluate(row))
+        if self.route == 8:
+            # Do not expect to evaluate across a sequence of expressions
+            return self.expr_array[0].evaluate(row)
+        if self.route == 11:
+            pass
+        if self.route == 12:
+            if self.unary_op == "ISNULL":
+                return self.evaluate(row) is None
+            else:
+                return self.evaluate(row) is not None
+        if self.route == 13:
+            if self.binary_op == "IS":
+                return self.lead_expr.evaluate(row) == self.second_expr.evaluate(row)
+            elif self.binary_op == "IS NOT":
+                return self.lead_expr.evaluate(row) != self.second_expr.evaluate(row)
+            elif self.binary_op == "IS DISTINCT FROM":
+                return self.lead_expr.evaluate(row) != self.second_expr.evaluate(row)
+            elif self.binary_op == "IS NOT DISTINCT FROM":
+                return self.lead_expr.evaluate(row) == self.second_expr.evaluate(row)
+            else:
+                raise ValueError(f"Found expression from Route 5 with an invalid comparison operator '{self.binary_op}'")
+        if self.route == 14:
+            between_value = self.second_expr.evaluate(row) <= self.lead_expr.evaluate(row) <= self.third_expr.evaluate(row)
+            return between_value if self.binary_op == "BETWEEN" else not between_value
+        raise ValueError(f"Attempted to evaluate Expression on invalid route {self.route}")
 
 @dataclass
 class InsertStatement:
