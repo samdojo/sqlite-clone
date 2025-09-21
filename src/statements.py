@@ -18,11 +18,13 @@ class Column:
 @dataclass
 class UpdateStatement:
     table: Any  # QualifiedTableName
-    set_assignments: List[Dict[str, Any]]  # [{'columns': [...], 'expression': ..., 'is_column_list': bool}]
+    set_assignments: List[
+        Dict[str, Any]
+    ]  # [{'columns': [...], 'expression': ..., 'is_column_list': bool}]
     from_clause: Optional[Any] = None  # TableOrSubQuery
-    where_expr: Optional[Any] = None   # Expression
+    where_expr: Optional[Any] = None  # Expression
     returning_exprs: Optional[List[Any]] = None  # List[Expression]
-    or_action: Optional[str] = None    # "ABORT", "FAIL", "IGNORE", "REPLACE", "ROLLBACK"
+    or_action: Optional[str] = None  # "ABORT", "FAIL", "IGNORE", "REPLACE", "ROLLBACK"
 
 
 @dataclass
@@ -41,7 +43,10 @@ class DropTableStatement:
 
 @dataclass
 class SelectStatement:
-    pass
+    schema_name: Optional[str]
+    table_name: str
+    alias: Optional[str]
+    columns: Optional[List[str]]
 
 
 LiteralType: TypeAlias = int | float | bool | str | bytes | None
@@ -176,41 +181,82 @@ class Expression:
             return False, self
         # Simple statements where unary operator is directly followed by a literal,
         # i.e. +10, NOT TRUE, -3.0
-        if (self.unary_op == UnaryOperator.POSITIVE) and (self.lead_expr.route == 1) and (self.lead_expr.lead_expr.dtype in {int, float}):
+        if (
+            (self.unary_op == UnaryOperator.POSITIVE)
+            and (self.lead_expr.route == 1)
+            and (self.lead_expr.lead_expr.dtype in {int, float})
+        ):
             return True, self.lead_expr
-        if (self.unary_op == UnaryOperator.NEGATIVE) and (self.lead_expr.route == 1) and (self.lead_expr.lead_expr.dtype in {int, float}):
+        if (
+            (self.unary_op == UnaryOperator.NEGATIVE)
+            and (self.lead_expr.route == 1)
+            and (self.lead_expr.lead_expr.dtype in {int, float})
+        ):
             out_expression = self.lead_expr
             out_expression.lead_expr.value *= -1
             return True, out_expression
-        if (self.unary_op == UnaryOperator.NOT) and (self.lead_expr.route == 1) and (self.lead_expr.lead_expr.dtype == bool):
+        if (
+            (self.unary_op == UnaryOperator.NOT)
+            and (self.lead_expr.route == 1)
+            and (self.lead_expr.lead_expr.dtype == bool)
+        ):
             out_expression = self.lead_expr
             out_expression.lead_expr.value = not out_expression.lead_expr.value
             return True, out_expression
-        if (self.unary_op == UnaryOperator.BITWISE_NOT) and (self.lead_expr.route == 1) and (self.lead_expr.lead_expr.dtype == bytes):
+        if (
+            (self.unary_op == UnaryOperator.BITWISE_NOT)
+            and (self.lead_expr.route == 1)
+            and (self.lead_expr.lead_expr.dtype == bytes)
+        ):
             out_expression = self.lead_expr
             out_expression.lead_expr.value = bitwise_not(out_expression.lead_expr.value)
             return True, out_expression
         # Else, assume expression in format like UNARY Expr(Expr(LITERAL) BINARY EXPR(...)...)
         try:
-            if (self.unary_op == UnaryOperator.POSITIVE) and (self.lead_expr.binary_op is not None) and (self.lead_expr.lead_expr.route == 1) and (self.lead_expr.lead_expr.lead_expr.dtype in {int, float}):
+            if (
+                (self.unary_op == UnaryOperator.POSITIVE)
+                and (self.lead_expr.binary_op is not None)
+                and (self.lead_expr.lead_expr.route == 1)
+                and (self.lead_expr.lead_expr.lead_expr.dtype in {int, float})
+            ):
                 return True, self.lead_expr
         except _:
-            if (self.unary_op == UnaryOperator.NEGATIVE) and (self.lead_expr.binary_op is not None) and (self.lead_expr.lead_expr.route == 1) and (self.lead_expr.lead_expr.lead_expr.dtype in {int, float}):
+            if (
+                (self.unary_op == UnaryOperator.NEGATIVE)
+                and (self.lead_expr.binary_op is not None)
+                and (self.lead_expr.lead_expr.route == 1)
+                and (self.lead_expr.lead_expr.lead_expr.dtype in {int, float})
+            ):
                 out_expression = self.lead_expr
                 out_expression.lead_expr.lead_expr.value *= -1
                 return True, out_expression
         except _:
-            if (self.unary_op == UnaryOperator.NOT) and (self.lead_expr.binary_op is not None) and (self.lead_expr.lead_expr.route == 1) and (self.lead_expr.lead_expr.lead_expr.dtype == bool ):
+            if (
+                (self.unary_op == UnaryOperator.NOT)
+                and (self.lead_expr.binary_op is not None)
+                and (self.lead_expr.lead_expr.route == 1)
+                and (self.lead_expr.lead_expr.lead_expr.dtype == bool)
+            ):
                 out_expression = self.lead_expr
-                out_expression.lead_expr.lead_expr.value = not out_expression.lead_expr.value
+                out_expression.lead_expr.lead_expr.value = (
+                    not out_expression.lead_expr.value
+                )
                 return True, out_expression
         except _:
-            if (self.unary_op == UnaryOperator.BITWISE_NOT) and (self.lead_expr.binary_op is not None) and (self.lead_expr.lead_expr.route == 1) and (self.lead_expr.lead_expr.lead_expr.dtype == bytes):
+            if (
+                (self.unary_op == UnaryOperator.BITWISE_NOT)
+                and (self.lead_expr.binary_op is not None)
+                and (self.lead_expr.lead_expr.route == 1)
+                and (self.lead_expr.lead_expr.lead_expr.dtype == bytes)
+            ):
                 out_expression = self.lead_expr
-                out_expression.lead_expr.lead_expr.value = bitwise_not(out_expression.lead_expr.value)
+                out_expression.lead_expr.lead_expr.value = bitwise_not(
+                    out_expression.lead_expr.value
+                )
                 return True, out_expression
         finally:
             return False, self
+
 
 @dataclass
 class InsertStatement:
