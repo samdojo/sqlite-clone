@@ -5,7 +5,7 @@ from sqltoken import TokenType
 from qualifiedtablenameparser import QualifiedTableNameParser
 from columnnamelistparser import ColumnNameListParser
 from expressionparser import ExpressionParser
-from tableorsubqueryparser import TableOrSubQueryParser
+from tableorsubqueryparser import TableOrSubqueryParser
 
 
 class UpdateParser(BaseParser):
@@ -23,7 +23,7 @@ class UpdateParser(BaseParser):
 
         # --- UPDATE keyword ---
         if not self.valueMatches("UPDATE"):
-            raise ParsingException("Expected UPDATE")
+            raise ParsingException(f"Expected UPDATE, received {self.tokens[0].value}")
         self.consume(TokenType.KEYWORD)
 
         # --- OR action (optional) ---
@@ -63,7 +63,7 @@ class UpdateParser(BaseParser):
 
                 if not self.valueMatches("="):
                     raise ParsingException("Expected '=' after column name list")
-                self.consume(TokenType.OPERATOR, "=")
+                self.consume(TokenType.COMPARISON, "=")
 
                 expr_parser = ExpressionParser(self.tokens)
                 expr = expr_parser.parse()
@@ -81,7 +81,7 @@ class UpdateParser(BaseParser):
 
                 if not self.valueMatches("="):
                     raise ParsingException("Expected '=' in SET assignment")
-                self.consume(TokenType.OPERATOR, "=")
+                self.consume(TokenType.COMPARISON, "=")
 
                 expr_parser = ExpressionParser(self.tokens)
                 expr = expr_parser.parse()
@@ -101,7 +101,7 @@ class UpdateParser(BaseParser):
         from_clause = None
         if self.valueMatches("FROM"):
             self.consume(TokenType.KEYWORD)
-            from_parser = TableOrSubQueryParser(self.tokens)
+            from_parser = TableOrSubqueryParser(self.tokens)
             from_clause = from_parser.parse()
             self.tokens = from_parser.tokens
 
@@ -113,7 +113,7 @@ class UpdateParser(BaseParser):
             self.tokens = expr_parser.tokens
 
         returning_exprs = None
-        if self.valueMatches("RETURNING"):
+        if len(self.tokens) >0 and self.valueMatches("RETURNING"):
             self.consume(TokenType.KEYWORD)
             expressions = []
             while True:

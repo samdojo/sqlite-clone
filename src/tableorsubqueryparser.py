@@ -1,11 +1,11 @@
 from parser import Parser
-from typing import List, Optional, Self, TypeAlias, Union
+from typing import List, Optional, TypeAlias, Union
 
 from baseparser import BaseParser, ParsingException
 from sqltoken import TokenType
-from statements import SubQuery, Table
+from statements import SubQuery, QualifiedTableName
 
-NestedTableOrSubquery: TypeAlias = List[Union[Table, SubQuery, Self]]
+NestedTableOrSubquery: TypeAlias = List[Union[QualifiedTableName, SubQuery, 'NestedTableOrSubquery']]
 
 
 class TableOrSubqueryParser(BaseParser):
@@ -18,7 +18,7 @@ class TableOrSubqueryParser(BaseParser):
         Recursively parses the input tokens and returns a list of tables and subqueries.
 
         Returns:
-            List[Union[Table, SubQuery, Self]]: Nested list of tables and subqueries
+            List[Union[QualifiedTableName, SubQuery, Self]]: Nested list of tables and subqueries
         Example:
             schema.table as alias, (SELECT * FROM table2) returns \n
             [Table("table", "schema", "alias"), [SelectStatement(SELECT * FROM table2)]]
@@ -45,12 +45,12 @@ class TableOrSubqueryParser(BaseParser):
                 raise ParsingException(f"Unexpected token {self.tokens[0]}")
         return result
 
-    def _parse_table(self) -> Table:
+    def _parse_table(self) -> QualifiedTableName:
         """
         Parses a table name and returns a Table object, with optional schema name and alias.
 
         Returns:
-            Table: Table object
+            QualifiedTableName: Table object
         Example:
             schema.table as alias returns \n
             Table("table", "schema", "alias")
@@ -71,7 +71,7 @@ class TableOrSubqueryParser(BaseParser):
             table_name = second_token.value
 
         alias = self._parse_alias_if_exists(require_as=False)
-        return Table(table_name, schema_name, alias)
+        return QualifiedTableName(table_name, schema_name, alias)
 
     def _parse_parenthesis_content(self) -> NestedTableOrSubquery:
         """
