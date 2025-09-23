@@ -1,11 +1,11 @@
 from typing import Optional
 
-from insertparser import InsertStatementParser
-from signednumberparser import SignedNumberParser
 from baseparser import BaseParser
-from statements import SelectStatement
-from statements import InsertStatement
+from insertparser import InsertStatementParser
+from selectparser import SelectStatementParser
+from signednumberparser import SignedNumberParser
 from sqltoken import TokenType
+from statements import InsertStatement, SelectStatement
 
 
 # any 'parseXxxIfMatches()' function should catch any error and return None
@@ -33,12 +33,21 @@ class Parser(BaseParser):
             return None
 
     def parseSelectStatementIfMatches(self) -> Optional[SelectStatement]:
-        # TODO
-        return None
+        try:
+            if not self.typeMatches(TokenType.KEYWORD) or not self.valueMatches(
+                "SELECT"
+            ):
+                return None
+            parser = SelectStatementParser(self.tokens)
+            return parser.parse()
+        except:
+            return None
 
     def parseInsertStatementIfMatches(self) -> Optional[InsertStatement]:
         try:
-            if not self.typeMatches(TokenType.KEYWORD) or not self.valueMatches("INSERT"):
+            if not self.typeMatches(TokenType.KEYWORD) or not self.valueMatches(
+                "INSERT"
+            ):
                 return None
             parser = InsertStatementParser(self.tokens)
             return parser.parse()

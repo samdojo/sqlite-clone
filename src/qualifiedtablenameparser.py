@@ -1,4 +1,5 @@
 from typing import Optional
+
 from baseparser import BaseParser, ParsingException
 from sqltoken import TokenType
 from statements import QualifiedTableName
@@ -17,7 +18,9 @@ class QualifiedTableNameParser(BaseParser):
             QualifiedTableName(table_name, schema_name, alias)
         """
         if not self.typeMatches(TokenType.IDENTIFIER):
-            raise ParsingException("Expected table name (or schema) after UPDATE")
+            raise ParsingException(
+                f"Expected table name (or schema) after UPDATE, got {self.tokens[0]}"
+            )
 
         # Identifier
         first = super().consume(TokenType.IDENTIFIER)
